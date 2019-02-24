@@ -27,8 +27,8 @@ class TriMesh
         
         TriMesh(string& gri_filename_in);
         void ReadGri(string& gri_filename);
-        void calculateI2E();
-        void calculateB2E();
+        void CalculateI2E();
+        void CalculateB2E();
 
 };
 

@@ -13,8 +13,8 @@
 TriMesh::TriMesh(string& gri_filename_in){
     gri_filename = gri_filename_in;
     ReadGri(this->gri_filename);
-    calculateI2E();
-    calculateB2E();
+    CalculateI2E();
+    CalculateB2E();
 }
 
 void TriMesh::ReadGri(string& gri_filename){
@@ -101,7 +101,7 @@ void TriMesh::ReadGri(string& gri_filename){
 
 }
 
-void TriMesh::calculateI2E(){
+void TriMesh::CalculateI2E(){
     // This function is re-written from the Python version, so the names of the 
     // variables are not well-organized
     vector<vector<int> > E = this->E;
@@ -112,7 +112,7 @@ void TriMesh::calculateI2E(){
     int nedge = 0;
     for (int t = 0; t < this->num_element; t++){
         vector<int> vertex_index(3);
-        vertex_index = utils::getVertexIndex(E[t]);
+        vertex_index = utils::GetVertexIndex(E[t]);
         for (int e = 0; e < 3; e++){
             int n1 = E[t][vertex_index[(e + 1) % 3]] - 1; 
             int n2 = E[t][vertex_index[(e + 2) % 3]] - 1;
@@ -142,12 +142,12 @@ void TriMesh::calculateI2E(){
             CC[i][j] = C[i][j];
         }
     }
-    sort(CC.begin(), CC.end(), utils::sortcol_0);
+    sort(CC.begin(), CC.end(), utils::SortByColumn0);
     int i0 = 0;
     for (int i = 0; i < nedge; i++){
         if (CC[i][0] != CC[i0][0]){
-            vector<vector<int> > A = utils::slice_by_row(CC, i0, i - 1);
-            sort(A.begin(), A.end(), utils::sortcol_2);
+            vector<vector<int> > A = utils::SliceByRow(CC, i0, i - 1);
+            sort(A.begin(), A.end(), utils::SortByColumn2);
             for (int ii = i0; ii < i; ii++){
                 for (int jj = 0; jj < 4; jj++){
                     CC[ii][jj] = A[ii - i0][jj];
@@ -160,7 +160,7 @@ void TriMesh::calculateI2E(){
 }
 
 
-void TriMesh::calculateB2E(){
+void TriMesh::CalculateB2E(){
     // This function is re-written from the Python version, so the names of the 
     // variables are not well-organized
     vector<vector<int> > E = this->E;
@@ -169,7 +169,7 @@ void TriMesh::calculateB2E(){
     
     for (int ielem = 0; ielem < E.size(); ielem++){
         vector<int> vertex_index(3), elem(3);
-        vertex_index = utils::getVertexIndex(E[ielem]);
+        vertex_index = utils::GetVertexIndex(E[ielem]);
         for (int i = 0; i < 3; i++){
             elem[i] = E[ielem][i];
         }
@@ -180,13 +180,13 @@ void TriMesh::calculateB2E(){
                 int match_1 = distance(elem.begin(), find(elem.begin(), elem.end(), nb[0]));
                 int match_2 = distance(elem.begin(), find(elem.begin(), elem.end(), nb[1]));
                 if ((match_1 != elem.size()) && (match_2 != elem.size())){
-                    int local_ind = utils::missing_from_012(match_1, match_2);
+                    int local_ind = utils::MissingFrom012(match_1, match_2);
                     vector<int> row = {ielem + 1, local_ind + 1, ibg + 1};
                     B2E.push_back(row);
                 }
             }
         }
     }
-    sort(B2E.begin(), B2E.end(), utils::sortcol_2);
+    sort(B2E.begin(), B2E.end(), utils::SortByColumn2);
     this->B2E = B2E;
 }

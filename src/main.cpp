@@ -26,7 +26,7 @@ int main()
     int tmp[] = {1, 2, 3, 4, 5, 6};
     vector<int> element (tmp, tmp+6);
     vector<int> test;
-    test = utils::getVertexIndex(element);
+    test = utils::GetVertexIndex(element);
     cout << test[0] << ' ' << test[1] << ' ' << test[2] << endl; 
 
     cout << endl << "Testing boost" << endl;
@@ -47,7 +47,7 @@ int main()
     cout << vect[0][0] << vect[0][1] << vect[0][2] << endl;
     
     
-    vector<vector<int> > sub_vec = utils::slice_by_row(vect, 0, 1); 
+    vector<vector<int> > sub_vec = utils::SliceByRow(vect, 0, 1); 
     
     cout << sub_vec[0][0] << sub_vec[0][1] << sub_vec[0][2] << endl;
     cout << sub_vec[1][0] << sub_vec[1][1] << sub_vec[1][2] << endl;
