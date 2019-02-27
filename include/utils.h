@@ -4,8 +4,9 @@
 #include <iostream>
 #include <vector>
 
-namespace utils{
-    
+namespace utils
+{
+
     int GetFullOrderIndex(int r, int s, int order);
 
     std::vector<int> GetVertexIndex(std::vector<int>& element);
@@ -18,7 +19,7 @@ namespace utils{
     std::vector<std::vector<T> > SliceByRow(std::vector<std::vector<T> > const& v, int m, int n);
 
     int MissingFrom012(int input1, int input2);
-    
+
 }
 
 #endif

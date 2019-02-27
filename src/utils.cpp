@@ -41,11 +41,11 @@ namespace utils{
     {
         auto first = v.cbegin() + m;
         auto last = v.cbegin() + n + 1;
-        vector<vector<int> > vec(first, last);
+        vector<vector<T> > vec(first, last);
         return vec;
     }
     template vector<vector<int> > SliceByRow<int> (vector<vector<int> > const& v, int m, int n);
-    
+
 
     int MissingFrom012(int input1, int input2){
         if ((input1 == 0 && input2 == 1) || (input1 == 1 && input2 == 0)){
@@ -60,5 +60,5 @@ namespace utils{
             abort();
         }
     }
-    
+
 }
