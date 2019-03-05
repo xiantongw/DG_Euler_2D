@@ -1,12 +1,3 @@
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <vector>
-#include <algorithm>
-#include <boost/numeric/ublas/matrix_sparse.hpp>
-
-#include "../include/utils.h"
 #include "../include/TriMesh.h"
 
 TriMesh::TriMesh(string &gri_filename_in)

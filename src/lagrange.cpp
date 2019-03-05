@@ -1,12 +1,4 @@
-#include <iostream>
-#include <boost/numeric/ublas/matrix.hpp>
-#include <boost/numeric/ublas/vector.hpp>
-#include <boost/numeric/ublas/io.hpp>
-#include <boost/qvm/mat_operations.hpp>
-
 #include "../include/lagrange.h"
-#include "../include/InvertMatrix.h"
-#include "../include/utils.h"
 
 namespace lagrange
 {

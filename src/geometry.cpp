@@ -1,5 +1,3 @@
-#include <iostream>
-#include <cmath>
 #include "../include/geometry.h"
 
 namespace geometry
