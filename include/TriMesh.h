@@ -21,11 +21,15 @@ class TriMesh
     vector<int> n_base;
     vector<vector<int>> I2E;
     vector<vector<int>> B2E;
+    vector<bool> isCurved;
 
     TriMesh(string &gri_filename_in);
+    TriMesh(TriMesh &mesh);
     void ReadGri(string &gri_filename);
     void CalculateI2E();
     void CalculateB2E();
+    void WriteGri(string &gri_filename);
+
 
 };
 

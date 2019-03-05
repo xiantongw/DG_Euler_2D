@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
 
@@ -6,6 +7,7 @@
 #include "../include/utils.h"
 #include "../include/lagrange.h"
 #include "../include/geometry.h"
+#include "../include/ConstructCurveMesh.h"
 
 using namespace std;
 using namespace utils;
@@ -72,10 +74,10 @@ int main(int argc, char *argv[])
     ublas::vector<double> reference(2, 1), point(2, 1);
 
     vertex[0][0] = 0.0; vertex[0][1] = 0.0;
-    vertex[1][0] = 2.0; vertex[1][1] = 0.0;
-    vertex[2][0] = 0.0; vertex[2][1] = 2.0;
+    vertex[1][0] = 1.0; vertex[1][1] = 0.0;
+    vertex[2][0] = 0.0; vertex[2][1] = 1.0;
 
-    point[0] = 1; point[1] = 1;
+    point[0] = 0.5; point[1] = 0.5;
 
     physical = lagrange::MapReferenceToPhysicalLinear(vertex, 2);
     reference = lagrange::MapPhysicalToReferenceLinear(vertex, point, 2);
@@ -96,6 +98,21 @@ int main(int argc, char *argv[])
 
     cout << endl << "Testing geometry" << endl;
     cout << geometry::BumpFunction(0.1) << endl;
+
+    cout << endl << "test construct curve mesh" << endl;
+    string boundary_name="bottom";
+    cout << mesh.Bname[0] << endl;
+    TriMesh curved_mesh = mesh;
+    ConstructCurveMesh(mesh, curved_mesh, geometry::BumpFunction, boundary_name, 4);
+
+    cout << mesh.V.size() << "||" << curved_mesh.V.size() << endl;
+    cout << mesh.E.size() << "||" << curved_mesh.E.size() << endl;
+
+    cout << endl;
+    string out_filename = "test_out.gri";
+    curved_mesh.WriteGri(out_filename);
+
+    cout << mesh.isCurved[1] << endl;
 
     return 0;
 }

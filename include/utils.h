@@ -1,12 +1,11 @@
-#ifndef UTILS
-#define UTILS
+#ifndef UTILS_H
+#define UTILS_H
 
 #include <iostream>
 #include <vector>
 
 namespace utils
 {
-
     int GetFullOrderIndex(int r, int s, int order);
 
     std::vector<int> GetVertexIndex(std::vector<int>& element);

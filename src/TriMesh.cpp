@@ -13,8 +13,26 @@ TriMesh::TriMesh(string &gri_filename_in)
 {
     gri_filename = gri_filename_in;
     ReadGri(this->gri_filename);
+    this->isCurved = vector<bool> (this->E.size(), false);
     CalculateI2E();
     CalculateB2E();
+}
+
+TriMesh::TriMesh(TriMesh &mesh)
+{
+    gri_filename = mesh.gri_filename;
+    num_node = mesh.num_node;
+    num_element = mesh.num_element;
+    num_boundary = mesh.num_boundary;
+    E = mesh.E;
+    V = mesh.V;
+    B = mesh.B;
+    Bname = mesh.Bname;
+    name_base = mesh.name_base;
+    n_base = mesh.n_base;
+    I2E = mesh.I2E;
+    B2E = mesh.B2E;
+    isCurved = mesh.isCurved;
 }
 
 void TriMesh::ReadGri(string &gri_filename)
@@ -234,4 +252,37 @@ void TriMesh::CalculateB2E()
     }
     sort(B2E.begin(), B2E.end(), utils::SortByColumn2);
     this->B2E = B2E;
+}
+
+void TriMesh::WriteGri(string& gri_filename)
+{
+    ofstream outfile;
+    outfile.open(gri_filename);
+    outfile << this->V.size() << ' ' << this->E.size() << ' ' << this->V[0].size() << endl;
+    for (int i = 0; i < this->V.size(); i++)
+    {
+        outfile << std::scientific << this->V[i][0] << ' ' << this->V[i][1] << endl;
+    }
+    outfile << this->Bname.size() << endl;
+    for (int iB = 0; iB < this->Bname.size(); iB++)
+    {
+        outfile << this->B[iB].size() << ' ' << 2 << ' ' << this->Bname[iB] << endl;
+        for (int j = 0; j < this->B[iB].size(); j++)
+        {
+            outfile << this->B[iB][j][0] << ' ' << this->B[iB][j][1] << endl;
+        }
+    }
+    int nnode = this->E[0].size();
+    int p = int((sqrt(8 * nnode + 1) - 3) / 2);
+    outfile << this->E.size() << ' ' << p << ' ' << "TriLagrange" << endl;
+    for (int iE = 0; iE < this->E.size(); iE++)
+    {
+        for (int inode = 0; inode < nnode; inode++)
+        {
+            outfile << this->E[iE][inode] << ' ';
+        }
+        outfile << endl;
+
+    }
+    outfile.close();
 }

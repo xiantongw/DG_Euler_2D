@@ -33,3 +33,5 @@
 *.app
 
 .DS_Store
+*.gri
+

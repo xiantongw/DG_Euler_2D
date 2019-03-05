@@ -5,8 +5,8 @@ permutation_matrix<> piv;
 lu_factorize(A, piv);
 lu_substitute(A, piv, x);
 */
-#ifndef INVERT_MATRIX_HPP
-#define INVERT_MATRIX_HPP
+#ifndef INVERT_MATRIX_H
+#define INVERT_MATRIX_H
 
 // REMEMBER to update "lu.hpp" header includes from boost-CVS
 #include <boost/numeric/ublas/vector.hpp>
@@ -23,4 +23,4 @@ namespace ublas = boost::numeric::ublas;
 template <class T>
 bool InvertMatrix(ublas::matrix<T> &input, ublas::matrix<T> &inverse);
 
-#endif //INVERT_MATRIX_HPP
+#endif //INVERT_MATRIX_H

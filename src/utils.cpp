@@ -1,6 +1,5 @@
 #include <iostream>
 #include <cmath>
-
 #include "../include/utils.h"
 
 namespace utils{
@@ -17,11 +16,11 @@ namespace utils{
         return k - 1; // return the index which is zero based
     }
 
-    vector<int> GetVertexIndex(vector<int>& element){
+    std::vector<int> GetVertexIndex(std::vector<int>& element){
         int num_node_in_element = element.size();
         // calculate the order of bases based on the number of nondes in the element
         int num_order = int((sqrt(8 * num_node_in_element + 1) - 3) / 2);
-        vector<int> vertex_index(3);
+        std::vector<int> vertex_index(3);
         vertex_index[0] = GetFullOrderIndex(0, 0, num_order);
         vertex_index[1] = GetFullOrderIndex(num_order, 0, num_order);
         vertex_index[2] = GetFullOrderIndex(0, num_order, num_order);
