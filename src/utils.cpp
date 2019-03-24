@@ -4,6 +4,7 @@ namespace utils
 {
 
     using namespace std;
+    namespace ublas = boost::numeric::ublas;
 
     int GetFullOrderIndex(int r, int s, int order)
     {
@@ -68,5 +69,17 @@ namespace utils
             abort();
         }
     }
+
+    template<typename T>
+    ublas::vector<T> StdToBoostVector(std::vector<T> std_vec)
+    {
+        ublas::vector<T> boost_vec (std_vec.size());
+        for (int i = 0; i < std_vec.size(); i++)
+        {
+            boost_vec(i) = std_vec[i];
+        }
+        return boost_vec;
+    }
+    template ublas::vector<double> StdToBoostVector<double>(std::vector<double> std_vec);
 
 } // namespace utils

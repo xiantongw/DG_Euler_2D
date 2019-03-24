@@ -5,8 +5,17 @@
 #include <vector>
 #include <cmath>
 
+#include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/vector.hpp>
+#include <boost/numeric/ublas/io.hpp>
+#include <boost/qvm/mat_operations.hpp>
+
+#include "./TriMesh.h"
+
 namespace utils
 {
+    namespace ublas = boost::numeric::ublas;
+
     int GetFullOrderIndex(int r, int s, int order);
 
     std::vector<int> GetVertexIndex(std::vector<int>& element);
@@ -19,6 +28,9 @@ namespace utils
     std::vector<std::vector<T> > SliceByRow(std::vector<std::vector<T> > const& v, int m, int n);
 
     int MissingFrom012(int input1, int input2);
+
+    template<typename T>
+    ublas::vector<T> StdToBoostVector(std::vector<T> std_vec);
 
 }
 

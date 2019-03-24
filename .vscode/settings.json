@@ -58,6 +58,13 @@
         "type_traits": "cpp",
         "typeinfo": "cpp",
         "utility": "cpp",
-        "cfenv": "cpp"
+        "cfenv": "cpp",
+        "clocale": "cpp",
+        "*.tcc": "cpp",
+        "deque": "cpp",
+        "unordered_map": "cpp",
+        "optional": "cpp",
+        "cinttypes": "cpp",
+        "numeric": "cpp"
     }
 }

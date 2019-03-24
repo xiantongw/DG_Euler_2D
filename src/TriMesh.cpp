@@ -5,8 +5,11 @@ TriMesh::TriMesh(string &gri_filename_in)
     gri_filename = gri_filename_in;
     ReadGri(this->gri_filename);
     this->isCurved = vector<bool> (this->E.size(), false);
-    CalculateI2E();
-    CalculateB2E();
+    CalcI2E();
+    CalcB2E();
+    FindCurvedIndex();
+    CalcIn();
+    CalcBn();
 }
 
 TriMesh::TriMesh(TriMesh &mesh)
@@ -23,7 +26,10 @@ TriMesh::TriMesh(TriMesh &mesh)
     n_base = mesh.n_base;
     I2E = mesh.I2E;
     B2E = mesh.B2E;
+    In = mesh.In;
+    Bn = mesh.Bn;
     isCurved = mesh.isCurved;
+    CurvedIndex = mesh.CurvedIndex;
 }
 
 void TriMesh::ReadGri(string &gri_filename)
@@ -130,7 +136,7 @@ void TriMesh::ReadGri(string &gri_filename)
     this->V = V;
 }
 
-void TriMesh::CalculateI2E()
+void TriMesh::CalcI2E()
 {
     // This function is re-written from the Python version, so the names of the
     // variables are not well-organized
@@ -208,7 +214,7 @@ void TriMesh::CalculateI2E()
     this->I2E = CC;
 }
 
-void TriMesh::CalculateB2E()
+void TriMesh::CalcB2E()
 {
     // This function is re-written from the Python version, so the names of the
     // variables are not well-organized
@@ -245,6 +251,67 @@ void TriMesh::CalculateB2E()
     this->B2E = B2E;
 }
 
+void TriMesh::FindCurvedIndex()
+{
+    for (int i = 0; i < this->isCurved.size(); i++)
+    {
+        if (this->isCurved[i])
+        {
+            this->CurvedIndex.push_back(i);
+        }
+    }
+}
+
+void TriMesh::CalcIn()
+{
+    int num_edge = this->I2E.size();
+    vector<vector<double> > In(num_edge,  vector<double> (3));
+    for (int iedge = 0; iedge < num_edge; iedge++)
+    {
+        int ielemL = this->I2E[iedge][0];
+        int ilocL = this->I2E[iedge][1];
+        int ilocA = (ilocL + 1) % 3;
+        int ilocB = (ilocL + 2) % 3;
+        int iglobA = this->E[ielemL][ilocA] - 1;
+        int iglobB = this->E[ielemL][ilocB] - 1;
+        double xA = this->V[iglobA][0]; double yA = this->V[iglobA][1];
+        double xB = this->V[iglobB][0]; double yB = this->V[iglobB][1];
+        double dl = sqrt((xA - xB) * (xA - xB) + (yA - yB) * (yA - yB));
+        In[iedge][2] = dl;
+        In[iedge][0] = (yB - yA) / dl; In[iedge][1] = (xA - xB) / dl;
+    }
+    this->In = In;
+}
+
+void TriMesh::CalcBn()
+{
+    int num_bedge = this->B2E.size();
+    vector<vector<double> > Bn(num_bedge, vector<double> (4));
+    for (int iedge = 0; iedge < num_bedge; iedge++)
+    {
+        int ielem = this->B2E[iedge][0] - 1;
+        int iloc = this->B2E[iedge][1] - 1;
+        int ilocA = (iloc + 1) % 3;
+        int ilocB = (iloc + 2) % 3;
+        int iglobA = this->E[ielem][ilocA] - 1;
+        int iglobB = this->E[ielem][ilocB] - 1;
+        double xA = this->V[iglobA][0]; double yA = this->V[iglobA][1];
+        double xB = this->V[iglobB][0]; double yB = this->V[iglobB][1];
+        double dl = sqrt((xA - xB) * (xA - xB) + (yA - yB) * (yA - yB));
+        Bn[iedge][2] = dl;
+        Bn[iedge][0] = (yB - yA) / dl; Bn[iedge][1] = (xA - xB) / dl;
+        if(this->isCurved[ielem])
+        {
+            Bn[iedge][3] = 1;
+        } else
+        {
+            Bn[iedge][3] = 0;
+        }
+    }
+    this->Bn = Bn;
+}
+
+
 void TriMesh::WriteGri(string& gri_filename)
 {
     ofstream outfile;
@@ -263,11 +330,12 @@ void TriMesh::WriteGri(string& gri_filename)
             outfile << this->B[iB][j][0] << ' ' << this->B[iB][j][1] << endl;
         }
     }
-    int nnode = this->E[0].size();
-    int p = int((sqrt(8 * nnode + 1) - 3) / 2);
-    outfile << this->E.size() << ' ' << p << ' ' << "TriLagrange" << endl;
+    // Write our the curve and uncurved elements
     for (int iE = 0; iE < this->E.size(); iE++)
     {
+        int nnode = this->E[iE].size();
+        int p = int((sqrt(8 * nnode + 1) - 3) / 2);
+        outfile << 1 << ' ' << p << ' ' << "TriLagrange" << endl;
         for (int inode = 0; inode < nnode; inode++)
         {
             outfile << this->E[iE][inode] << ' ';
