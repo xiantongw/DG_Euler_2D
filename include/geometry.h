@@ -19,7 +19,7 @@ namespace geometry
     double BumpFunction(double x);
 
     ublas::matrix<double> CalcJacobianLinear(TriMesh mesh, int ielem);
-    ublas::matrix<double> CalcJacobianCurved(TriMesh mesh, int ielem, double xi, double eta);
+    ublas::matrix<double> CalcJacobianCurved(TriMesh mesh, int ielem, boost::multi_array<double, 3> GPhi, int n_quad_2d, int ig);
 
     ublas::vector<int> GetEdgeLagrangeNodeIndex(int p, int local_index);
     ublas::vector<ublas::vector<double> > GetEdgeCoordinates(TriMesh mesh, int iedge);

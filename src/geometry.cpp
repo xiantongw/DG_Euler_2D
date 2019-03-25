@@ -25,7 +25,7 @@ namespace geometry
         return jacobian;
     }
 
-    ublas::matrix<double> CalcJacobianCurved(TriMesh mesh, int ielem, double xi, double eta)
+    ublas::matrix<double> CalcJacobianCurved(TriMesh mesh, int ielem, boost::multi_array<double, 3> GPhi, int n_quad_2d, int ig)
     {
         // In a curved element, the jacobian varies from the points eveluated on
         // So that is why xi and eta are passed in
@@ -43,8 +43,14 @@ namespace geometry
                 Nodes_Coord(i, 1) = mesh.V[lagrange_nodes_index[i] - 1][1];
             }
             ublas::matrix <double> TriLangrangeCoeff = lagrange::TriangleLagrange2D(p);
-            ublas::matrix <double> GPhi = lagrange::CalcBaseFunctionGradient(TriLangrangeCoeff, xi, eta);
-            ublas::axpy_prod(ublas::trans(Nodes_Coord), GPhi, jacobian, true);
+            ublas::matrix <double> GPhi_on_quad(Np, 2, 0.0);
+            GPhi.resize(boost::extents[n_quad_2d][Np][2]);
+            for (int ip = 0; ip < Np; ip++)
+            {
+                GPhi_on_quad(ip, 0) = GPhi[ig][ip][0];
+                GPhi_on_quad(ip, 1) = GPhi[ig][ip][1];
+            }
+            ublas::axpy_prod(ublas::trans(Nodes_Coord), GPhi_on_quad, jacobian, true);
         }
         else
         {
@@ -103,8 +109,20 @@ namespace geometry
         int ilocL = mesh.B2E[iedge][1] - 1;
         ublas::vector<int> selected_lagrange_index = GetEdgeLagrangeNodeIndex(q, ilocL);
         ublas::vector<int> edge_coord_index(selected_lagrange_index.size() + 2, 0);
-        std::vector<int> ind_vertex = utils::GetVertexIndex(mesh.E[mesh.B2E[iedge][0] - 1]);
-        int iL = ind_vertex[(ilocL + 1) % 3]; int iR = ind_vertex[(ilocL + 2) % 3];
+        int iL, iR;
+        switch (ilocL)
+        {
+            case 0:
+                iL = q; iR = Nq - 1;
+                break;
+            case 1:
+                iL = Nq - 1; iR = 0;
+                break;
+            case 2:
+                iL = 0; iR = q;
+            default:
+                break;
+        }
         edge_coord_index(0) = iL;
         edge_coord_index(selected_lagrange_index.size() + 1) = iR;
         for (int i = 1; i < selected_lagrange_index.size() + 1; i++)
@@ -121,8 +139,7 @@ namespace geometry
         int q = int((sqrt(1 + 8.0 * Nq) - 3) / 2);
         int ielemL = mesh.B2E[iedge][0] - 1;
         int ilocL = mesh.B2E[iedge][1] - 1;
-        ublas::vector<int> selected_lagrange_index = GetEdgeLagrangeNodeIndex(q, ilocL);
-        ublas::vector<ublas::vector<double> > edge_coord(selected_lagrange_index.size() + 2, ublas::vector<double> (2, 0.0));
+        ublas::vector<ublas::vector<double> > edge_coord(q + 1, ublas::vector<double> (2, 0.0));
         ublas::vector<int> edge_coord_index = GetEdgeCoordinatesIndex(mesh, iedge);
 
         for (int i = 0; i < edge_coord_index.size(); i++)

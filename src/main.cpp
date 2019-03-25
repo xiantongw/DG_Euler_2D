@@ -96,22 +96,14 @@ int main(int argc, char *argv[])
 
     ublas::matrix<double> mat_mass = lagrange::ConstructMassMatrix(2, mesh);
 
-    cout << endl << "test construct curve mesh" << endl;
     string boundary_name="bottom";
-    cout << mesh.Bname[0] << endl;
-    TriMesh curved_mesh = mesh;
-    ConstructCurveMesh(mesh, curved_mesh, geometry::BumpFunction, boundary_name, 3);
-
-    // cout << mesh.V.size() << "||" << curved_mesh.V.size() << endl;
-    // cout << mesh.E.size() << "||" << curved_mesh.E.size() << endl;
-
-    // string out_filename = "bump0_p2.gri";
-    // curved_mesh.WriteGri(out_filename);
 
     // Testing Calculate Residaul
     cout << "Testing Calculate Residual" << endl;
-    int p = 2;
+    int p = 1;
     int Np = int((p + 1) * (p + 2) / 2);
+    TriMesh curved_mesh = mesh;
+    ConstructCurveMesh(mesh, curved_mesh, geometry::BumpFunction, boundary_name, p + 1);
     ublas::vector<double> States (curved_mesh.num_element * Np * 4, 0.0);
     // Construct free stream state
     for (int ielem = 0; ielem < curved_mesh.num_element; ielem++)
@@ -139,7 +131,19 @@ int main(int argc, char *argv[])
     /*************************/
     ResData resdata = CalcResData(curved_mesh, p);
     ublas::vector<double> Residual = CalcResidual(curved_mesh, param, resdata, States, p);
-    std::cout << ublas::norm_2(Residual) << std::endl;
-    // cout << Residual << endl;
+
+    int ielem = 71;
+    ublas::vector<double> elem_check(4, 0.0);
+    int i_lagrange = 0;
+    for (int istate = 0; istate < 4; istate++)
+    {
+        elem_check(istate) = Residual(ielem * Np * 4 + i_lagrange  * 4 + istate);
+    }
+    cout << "Total" << ublas::norm_2(elem_check) << endl;
+    for (int i=0;i<curved_mesh.CurvedIndex.size();i++)
+    {
+        cout << curved_mesh.CurvedIndex[i] << ' ';
+    }
+    cout << endl;
     return 0;
 }

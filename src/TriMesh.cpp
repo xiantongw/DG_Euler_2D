@@ -253,6 +253,7 @@ void TriMesh::CalcB2E()
 
 void TriMesh::FindCurvedIndex()
 {
+    this->CurvedIndex.clear();
     for (int i = 0; i < this->isCurved.size(); i++)
     {
         if (this->isCurved[i])
@@ -268,8 +269,8 @@ void TriMesh::CalcIn()
     vector<vector<double> > In(num_edge,  vector<double> (3));
     for (int iedge = 0; iedge < num_edge; iedge++)
     {
-        int ielemL = this->I2E[iedge][0];
-        int ilocL = this->I2E[iedge][1];
+        int ielemL = this->I2E[iedge][0] - 1;
+        int ilocL = this->I2E[iedge][1] - 1;
         int ilocA = (ilocL + 1) % 3;
         int ilocB = (ilocL + 2) % 3;
         int iglobA = this->E[ielemL][ilocA] - 1;
