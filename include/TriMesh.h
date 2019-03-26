@@ -20,6 +20,7 @@ class TriMesh
     double num_node;
     int num_element;
     double num_boundary;
+    int curved_group;
     vector<vector<int> > E;
     vector<vector<double> > V;
     vector<vector<vector<int> > > B;

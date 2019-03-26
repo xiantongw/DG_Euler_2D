@@ -14,10 +14,10 @@ ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata,
     double gamma = param.gamma;
     // The residual vector
     ublas::vector<double> Residual (num_element * Np * num_states, 0.0);
-
     // Pull out the ResData
     arr_2d Phi = resdata.Phi;
     arr_3d GPhi = resdata.GPhi;
+    arr_3d GPhi_Curved = resdata.GPhi_Curved;
 	arr_3d Phi_1D = resdata.Phi_1D;
 	arr_3d Phi_1D_Curved = resdata.Phi_1D_Curved;
 	arr_4d GPhi_1D = resdata.GPhi_1D;
@@ -29,6 +29,8 @@ ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata,
 	ublas::vector<double> x_quad_2d = resdata.x_quad_2d;
 	ublas::vector<double> w_quad_2d = resdata.w_quad_2d;
 
+    int elem_check = 0;
+    int ip_check = 2;
     // Loop over elements
     // 1. Construct Jacobian 2.evealute interior contribution to the residual
     // Notice that there are two sets of elements in the mesh, curved and not curved
@@ -73,7 +75,8 @@ ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata,
                     }
                     ublas::matrix<double> analytical_flux = euler::CalcAnalyticalFlux(state_on_quad, gamma);
                     ublas::vector<double> GPhi_on_quad (2, 0.0);
-                    GPhi_on_quad(0) = GPhi[ig][ip][0]; GPhi_on_quad(1) = GPhi[ig][ip][1];
+                    GPhi_on_quad(0) = GPhi[ig][ip][0];
+                    GPhi_on_quad(1) = GPhi[ig][ip][1];
                     ublas::vector<double> GPhi_matmul_invJ (2, 0.0);
                     ublas::vector<double> GPhi_matmul_invJ_matmul_flux (4, 0.0);
                     ublas::axpy_prod(GPhi_on_quad, inv_jacobian, GPhi_matmul_invJ, true);
@@ -106,7 +109,7 @@ ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata,
                             state_on_quad(istate) += Phi[ig][ipi] * states_in_element(ipi)(istate);
                         }
                     }
-                    ublas::matrix<double> jacobian = geometry::CalcJacobianCurved(mesh, ielem, GPhi, n_quad_2d, ig);
+                    ublas::matrix<double> jacobian = geometry::CalcJacobianCurved(mesh, ielem, GPhi_Curved, n_quad_2d, ig);
                     ublas::matrix<double> inv_jacobian (jacobian.size1(), jacobian.size2());
                     double det_jacobian = jacobian(0, 0) * jacobian(1, 1) - jacobian(0, 1) * jacobian(1, 0);
                     InvertMatrix(jacobian, inv_jacobian);
@@ -125,8 +128,6 @@ ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata,
                     // the contribution from interior, !!! substracted !!!
                     Residual(ielem * Np * num_states + ip * num_states + istate) -= temp_sum(istate);
                 }
-                if (ielem == 71 && ip == 0)
-                    std::cout << "interior:" << ublas::norm_2(temp_sum) << std::endl;
             }
         }
     } // End Loop over elements
@@ -180,10 +181,6 @@ ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata,
                 Residual(ielemL * Np * num_states + ip * num_states + istate) += temp_sum_L(istate);
                 Residual(ielemR * Np * num_states + ip * num_states + istate) += temp_sum_R(istate);
             }
-            if (ielemL == 71 && ip == 0)
-                std::cout << "L " << ublas::norm_2(temp_sum_L) << std::endl;
-            if (ielemR == 71 && ip == 0)
-                std::cout << "R " << ublas::norm_2(temp_sum_R) << std::endl;
         }
     }
 
@@ -263,8 +260,28 @@ ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata,
                 for (int iq = 0; iq < q + 1; iq++)
                 {
                     int local_lagrange_ind = edge_coord_ind(iq);
-                    tangent(0) += edge_coord(iq)(0) * GPhi_1D_Curved[ilocL][ig][local_lagrange_ind][0];
-                    tangent(1) += edge_coord(iq)(1) * GPhi_1D_Curved[ilocL][ig][local_lagrange_ind][1];
+                    double deriv_along_edge = 0.0;
+                    switch (ilocL)
+                    {
+                        case 0:
+                            tangent(0) += - edge_coord(iq)(0) * GPhi_1D_Curved[ilocL][ig][local_lagrange_ind][0]
+                                        + edge_coord(iq)(0) * GPhi_1D_Curved[ilocL][ig][local_lagrange_ind][1];
+                            tangent(1) += - edge_coord(iq)(1) * GPhi_1D_Curved[ilocL][ig][local_lagrange_ind][0]
+                                        + edge_coord(iq)(1) * GPhi_1D_Curved[ilocL][ig][local_lagrange_ind][1];
+                            break;
+                        case 1:
+                            deriv_along_edge = -GPhi_1D_Curved[ilocL][ig][local_lagrange_ind][1];
+                            tangent(0) += edge_coord(iq)(0) * deriv_along_edge;
+                            tangent(1) += edge_coord(iq)(1) * deriv_along_edge;
+                            break;
+                        case 2:
+                            deriv_along_edge = GPhi_1D_Curved[ilocL][ig][local_lagrange_ind][0];
+                            tangent(0) += edge_coord(iq)(0) * deriv_along_edge;
+                            tangent(1) += edge_coord(iq)(1) * deriv_along_edge;
+                            break;
+                        default:
+                            break;
+                    }
                 }
                 norm_on_quad_curved(ig)(0) = tangent(1);
                 norm_on_quad_curved(ig)(1) = -1.0 * tangent(0);
@@ -287,17 +304,15 @@ ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata,
                     double jacobian_edge = ublas::norm_2(norm_on_quad_curved(ig));
                     ublas::vector<double> norm_vec = norm_on_quad_curved(ig) / jacobian_edge;
                     ublas::vector<double> numerical_flux = euler::ApplyBoundaryCondition(uL_quad, norm_vec, boundary_type, param, mws);
+                    // std::cout << numerical_flux << std::endl;
                     temp_sum_L += Phi_1D[ilocL][ig][ip] * numerical_flux * jacobian_edge * w_quad_1d(ig);
-                    std::cout << jacobian_edge << std::endl;
+                    // std::cout << Phi_1D[ilocL][ig][ip] << std::endl;
                 }
-                std::cout << "================" << std::endl;
                 for (int istate = 0; istate < num_states; istate++)
                 {
                     // the contribution from edge, !!! ADD !!!
                     Residual(ielemL * Np * num_states + ip * num_states + istate) += temp_sum_L(istate);
                 }
-                if (ielemL == 71 && ip == 0)
-                    std::cout << "boundary:" << ublas::norm_2(temp_sum_L) << std::endl;
             }
 
         }
@@ -337,6 +352,7 @@ ResData CalcResData(TriMesh mesh, int p)
 
     arr_2d Phi(boost::extents[n_quad_2d][Np]); resdata.Phi.resize(boost::extents[n_quad_2d][Np]);
     arr_3d GPhi(boost::extents[n_quad_2d][Np][2]); resdata.GPhi.resize(boost::extents[n_quad_2d][Np][2]);
+    arr_3d GPhi_Curved(boost::extents[n_quad_2d][Nq][2]); resdata.GPhi_Curved.resize(boost::extents[n_quad_2d][Nq][2]);
     // Pre-calculate the basis functions on edge quad nodes
     arr_3d Phi_1D(boost::extents[3][n_quad_1d][Np]); resdata.Phi_1D.resize(boost::extents[3][n_quad_1d][Np]);
     arr_3d Phi_1D_Curved(boost::extents[3][n_quad_1d][Nq]); resdata.Phi_1D_Curved.resize(boost::extents[3][n_quad_1d][Nq]);
@@ -357,6 +373,18 @@ ResData CalcResData(TriMesh mesh, int p)
         }
     }
 
+    for (int ig = 0; ig < n_quad_2d; ig++) // for each quadrature point
+    {
+        double xi = x_quad_2d[2 * ig];
+        double eta = x_quad_2d[2 * ig + 1];
+        ublas::matrix<double> gphi_curved = lagrange::CalcBaseFunctionGradient(TriLagrangeCoeff_Curved, xi, eta);
+        for (int ipi = 0; ipi < Nq; ipi++)
+        {
+            GPhi_Curved[ig][ipi][0] = gphi_curved(ipi, 0);
+            GPhi_Curved[ig][ipi][1] = gphi_curved(ipi, 1);
+        }
+    }
+
     for (int num_edge = 0; num_edge < 3; num_edge++)
     {
         for (int ig = 0; ig < n_quad_1d; ig++) // for each quadrature point
@@ -368,15 +396,15 @@ ResData CalcResData(TriMesh mesh, int p)
                     xi = 1 - x_quad_1d[ig]; eta = 1 - xi;
                 break;
                 case 1:
-                    xi = 0.0;           eta = 1- x_quad_1d[ig];
+                    xi = 0.0;           eta = 1 - x_quad_1d[ig];
                 break;
                 case 2:
                     xi = x_quad_1d[ig]; eta = 0.0;
                 break;
             }
             ublas::vector<double> phi = lagrange::CalcBaseFunction(TriLagrangeCoeff, xi, eta);
-            ublas::vector<double> phi_curved = lagrange::CalcBaseFunction(TriLagrangeCoeff_Curved, xi, eta);
             ublas::matrix<double> gphi = lagrange::CalcBaseFunctionGradient(TriLagrangeCoeff, xi, eta);
+            ublas::vector<double> phi_curved = lagrange::CalcBaseFunction(TriLagrangeCoeff_Curved, xi, eta);
             ublas::matrix<double> gphi_curved = lagrange::CalcBaseFunctionGradient(TriLagrangeCoeff_Curved, xi, eta);
             for (int ip = 0; ip < Np; ip++)
             {
@@ -394,6 +422,7 @@ ResData CalcResData(TriMesh mesh, int p)
     }
     resdata.Phi = Phi;
     resdata.GPhi = GPhi;
+    resdata.GPhi_Curved = GPhi_Curved;
     resdata.Phi_1D = Phi_1D;
     resdata.Phi_1D_Curved = Phi_1D_Curved;
     resdata.GPhi_1D = GPhi_1D;

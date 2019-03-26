@@ -7,6 +7,7 @@
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/io.hpp>
 #include <boost/qvm/mat_operations.hpp>
+#include <boost/range/algorithm.hpp>
 
 #include "../include/TriMesh.h"
 #include "../include/utils.h"

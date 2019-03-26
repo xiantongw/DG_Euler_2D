@@ -25,10 +25,10 @@ namespace geometry
         return jacobian;
     }
 
-    ublas::matrix<double> CalcJacobianCurved(TriMesh mesh, int ielem, boost::multi_array<double, 3> GPhi, int n_quad_2d, int ig)
+    ublas::matrix<double> CalcJacobianCurved(TriMesh mesh, int ielem, boost::multi_array<double, 3> GPhi_Curved, int n_quad_2d, int ig)
     {
         // In a curved element, the jacobian varies from the points eveluated on
-        // So that is why xi and eta are passed in
+        // Since GPhi on quadrature points are pre-caculated, so GPhi is passed in
         ublas::matrix<double> jacobian(2, 2);
         // First, if this element is really a curved element?
         if (mesh.isCurved[ielem])
@@ -42,13 +42,12 @@ namespace geometry
                 Nodes_Coord(i, 0) = mesh.V[lagrange_nodes_index[i] - 1][0];
                 Nodes_Coord(i, 1) = mesh.V[lagrange_nodes_index[i] - 1][1];
             }
-            ublas::matrix <double> TriLangrangeCoeff = lagrange::TriangleLagrange2D(p);
             ublas::matrix <double> GPhi_on_quad(Np, 2, 0.0);
-            GPhi.resize(boost::extents[n_quad_2d][Np][2]);
+            GPhi_Curved.resize(boost::extents[n_quad_2d][Np][2]);
             for (int ip = 0; ip < Np; ip++)
             {
-                GPhi_on_quad(ip, 0) = GPhi[ig][ip][0];
-                GPhi_on_quad(ip, 1) = GPhi[ig][ip][1];
+                GPhi_on_quad(ip, 0) = GPhi_Curved[ig][ip][0];
+                GPhi_on_quad(ip, 1) = GPhi_Curved[ig][ip][1];
             }
             ublas::axpy_prod(ublas::trans(Nodes_Coord), GPhi_on_quad, jacobian, true);
         }
@@ -68,23 +67,28 @@ namespace geometry
             case 0:
                 if (p > 1)
                 {
-                    selected_lagrange_index[0] = 1 + p + 1 - 1;
+                    selected_lagrange_index[0] = p + 1 + p + 1 - 1;
                     for (int i = 1; i < p - 1; i++)
                     {
-                        selected_lagrange_index[i] = selected_lagrange_index[i - 1] + 1 + p - i + 1 - 1;
+                        selected_lagrange_index[i] = selected_lagrange_index[i - 1] + p + 1 - i - 1;
                     }
+                }
+                for (int i = 0; i < selected_lagrange_index.size(); i++)
+                {
+                    selected_lagrange_index[i] = selected_lagrange_index[i] - 1;
                 }
                 break;
 
             case 1:
                 if (p > 1)
                 {
-                    selected_lagrange_index[0] = p + 1 + p - 1;
+                    selected_lagrange_index[0] = p + 1;
                     for (int i = 1; i < p - 1; i++)
                     {
-                        selected_lagrange_index[i] = selected_lagrange_index[i - 1] + 1 + p - i - 1;
+                        selected_lagrange_index[i] = selected_lagrange_index[i - 1] + 1 + p - i;
                     }
                 }
+                boost::range::reverse(selected_lagrange_index);
                 break;
 
             case 2:

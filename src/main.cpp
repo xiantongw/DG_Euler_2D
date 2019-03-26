@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
     for (int i = 1; i < argc; ++i)
         cout << argv[i] << "\n";
 
-    ublas::matrix<double> mat_mass = lagrange::ConstructMassMatrix(2, mesh);
+    // ublas::matrix<double> mat_mass = lagrange::ConstructMassMatrix(2, mesh);
 
     string boundary_name="bottom";
 
@@ -131,19 +131,18 @@ int main(int argc, char *argv[])
     /*************************/
     ResData resdata = CalcResData(curved_mesh, p);
     ublas::vector<double> Residual = CalcResidual(curved_mesh, param, resdata, States, p);
+    cout << "Total Residual Norm: " << ublas::norm_2(Residual) << endl;
 
-    int ielem = 71;
-    ublas::vector<double> elem_check(4, 0.0);
-    int i_lagrange = 0;
-    for (int istate = 0; istate < 4; istate++)
-    {
-        elem_check(istate) = Residual(ielem * Np * 4 + i_lagrange  * 4 + istate);
-    }
-    cout << "Total" << ublas::norm_2(elem_check) << endl;
-    for (int i=0;i<curved_mesh.CurvedIndex.size();i++)
-    {
-        cout << curved_mesh.CurvedIndex[i] << ' ';
-    }
-    cout << endl;
+    // for (int i = 0; i < curved_mesh.B2E.size(); i++)
+    // {
+    //     for (int j = 0; j < curved_mesh.B2E[i].size(); j++)
+    //     {
+    //         cout << curved_mesh.B2E[i][j] << ' ';
+    //     }
+    //     cout << endl;
+    // }
+
+    // string outfile = "curve_bump1.gri";
+    // curved_mesh.WriteGri(outfile);
     return 0;
 }

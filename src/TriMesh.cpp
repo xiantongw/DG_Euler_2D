@@ -5,6 +5,7 @@ TriMesh::TriMesh(string &gri_filename_in)
     gri_filename = gri_filename_in;
     ReadGri(this->gri_filename);
     this->isCurved = vector<bool> (this->E.size(), false);
+    this->curved_group = -1;
     CalcI2E();
     CalcB2E();
     FindCurvedIndex();
@@ -30,6 +31,7 @@ TriMesh::TriMesh(TriMesh &mesh)
     Bn = mesh.Bn;
     isCurved = mesh.isCurved;
     CurvedIndex = mesh.CurvedIndex;
+    curved_group = mesh.curved_group;
 }
 
 void TriMesh::ReadGri(string &gri_filename)
@@ -288,20 +290,22 @@ void TriMesh::CalcBn()
 {
     int num_bedge = this->B2E.size();
     vector<vector<double> > Bn(num_bedge, vector<double> (4));
+    this->Bn.clear();
     for (int iedge = 0; iedge < num_bedge; iedge++)
     {
         int ielem = this->B2E[iedge][0] - 1;
         int iloc = this->B2E[iedge][1] - 1;
+        vector<int> ind_vertex = utils::GetVertexIndex(this->E[ielem]);
         int ilocA = (iloc + 1) % 3;
         int ilocB = (iloc + 2) % 3;
-        int iglobA = this->E[ielem][ilocA] - 1;
-        int iglobB = this->E[ielem][ilocB] - 1;
+        int iglobA = this->E[ielem][ind_vertex[ilocA]] - 1;
+        int iglobB = this->E[ielem][ind_vertex[ilocB]] - 1;
         double xA = this->V[iglobA][0]; double yA = this->V[iglobA][1];
         double xB = this->V[iglobB][0]; double yB = this->V[iglobB][1];
         double dl = sqrt((xA - xB) * (xA - xB) + (yA - yB) * (yA - yB));
         Bn[iedge][2] = dl;
         Bn[iedge][0] = (yB - yA) / dl; Bn[iedge][1] = (xA - xB) / dl;
-        if(this->isCurved[ielem])
+        if(this->B2E[iedge][2] == this->curved_group)
         {
             Bn[iedge][3] = 1;
         } else
