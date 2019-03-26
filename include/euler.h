@@ -22,8 +22,7 @@ namespace euler
     ublas::vector<double> CalcNumericalFlux(ublas::vector<double> uL, ublas::vector<double> uR, ublas::vector<double> norm,
                                             double gamma, char* type_flux, double& mws);
 
-    ublas::vector<double> ApplyBoundaryCondition(ublas::vector<double> u, ublas::vector<double> norm,
-                                                char* boundary_type, Param& cparam, double &mws);
+    ublas::vector<double> ApplyBoundaryCondition(ublas::vector<double> u, ublas::vector<double> norm, std::string boundary_type, Param& cparam, double &mws);
 }
 
 #endif

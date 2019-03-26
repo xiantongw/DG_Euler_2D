@@ -7,10 +7,12 @@ typedef struct Param{
     double attack_angle;
     double gamma;
     double p_inf;
-    char *bound0;
-    char *bound1;
-    char *bound2;
-    char *bound3;
+    std::string bound0;
+    std::string bound1;
+    std::string bound2;
+    std::string bound3;
+    std::string mesh_file;
+    int order;
 } Param;
 
 #endif

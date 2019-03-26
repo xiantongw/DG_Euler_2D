@@ -106,63 +106,100 @@ namespace lagrange
         return node_reference;
     }
 
-    ublas::matrix<double> ConstructMassMatrix(int p, TriMesh mesh)
+    ublas::vector<ublas::matrix<double> > ConstructMassMatrix(int p, TriMesh mesh, ResData resdata)
     {
-        int num_lagrange_node = int((p + 1) * (p + 2) / 2);
+        int Np = int((p + 1) * (p + 2) / 2);
         int num_element = mesh.E.size();
-        ublas::matrix<double> mat_mass (num_lagrange_node * num_element,
-                                        num_lagrange_node * num_element);
-        ublas::matrix<double> unit_mat_mass (num_lagrange_node, num_lagrange_node);
+        ublas::vector<ublas::matrix<double> > mat_mass (num_element, ublas::matrix<double> (Np, Np, 0.0));
+        ublas::matrix<double> unit_mat_mass (Np, Np, 0.0);
         std::vector<double> xq_std;
         std::vector<double> wq_std;
-        int n;
-        GetQuadraturePointsWeight2D(2, n, xq_std, wq_std);
+        int n_quad_2d;
+        GetQuadraturePointsWeight2D(2, n_quad_2d, xq_std, wq_std);
         // transfer the std vectors to ublas vectors
-        ublas::vector<double> xq(xq_std.size());
-        ublas::vector<double> wq(wq_std.size());
-        for (int i = 0; i < xq.size(); i++)
-        {
-            xq[i] = xq_std[i];
-        }
-        for (int i = 0; i < wq.size(); i++)
-        {
-            wq[i] = wq_std[i];
-        }
+        ublas::vector<double> xq = utils::StdToBoostVector(xq_std);
+        ublas::vector<double> wq = utils::StdToBoostVector(wq_std);
         ublas::matrix<double> TriLagrangeCoeff = TriangleLagrange2D(p);
         // Compute the base functions on all quadrature points
-        ublas::matrix<double> Phi(TriLagrangeCoeff.size1(), wq.size());
-        for (int j = 0; j < wq.size(); j++)
+        ublas::matrix<double> Phi(n_quad_2d, Np); // Basis function value on qudatrue points
+        for (int ig = 0; ig < n_quad_2d; ig++)
         {
-            double xi = xq(2 * j);
-            double eta = xq(2 * j + 1);
+            double xi = xq(2 * ig);
+            double eta = xq(2 * ig + 1);
             ublas::vector<double> phi = CalcBaseFunction(TriLagrangeCoeff, xi, eta);
-            for (int i = 0; i < phi.size(); i++)
+            for (int ip = 0; ip < Np; ip++)
             {
-                Phi(i, j) = phi(i);
+                Phi(ig, ip) = phi(ip);
             }
-
         }
-        ublas::matrix<double> diagmat_wq (wq.size(), wq.size()); diagmat_wq.clear();
-        for (int i = 0; i < wq.size(); i++)
+        // Do the Gussian quadrature integration for linear element
+        unit_mat_mass.clear();
+        for (int i = 0; i < Np; i++)
         {
-            diagmat_wq(i ,i) = wq(i);
-        }
-        ublas::matrix<double> mat_temp (Phi.size1(), diagmat_wq.size1());
-        ublas::axpy_prod(Phi, diagmat_wq, mat_temp, false);
-        ublas::axpy_prod(mat_temp, ublas::trans(Phi), unit_mat_mass, false);
-        // Fill the term of block-diagonal parts
-        for (int i_elem = 0; i_elem < mesh.E.size(); i_elem++)
-        {
-            for (int i = 0; i < num_lagrange_node; i++)
+            for (int j = 0; j < Np; j++)
             {
-                for (int j = 0; j < num_lagrange_node; j++)
+                for (int ig = 0; ig < n_quad_2d; ig++)
                 {
-                    mat_mass (i_elem * num_lagrange_node + i, i_elem * num_lagrange_node + j) = unit_mat_mass (i, j);
+                    // unit mass matrix is the same in reference space is the same for linear elements
+                    unit_mat_mass(i, j) += Phi(ig, i) * Phi(ig, j);
                 }
             }
-
+        }
+        // Fill the term of block-diagonal parts for linear elements
+        for (int i_elem = 0; i_elem < num_element; i_elem++)
+        {
+            if (!mesh.isCurved[i_elem])
+            {
+                for (int i = 0; i < Np; i++)
+                {
+                    for (int j = 0; j < Np; j++)
+                    {
+                        ublas::matrix<double> jacobian = geometry::CalcJacobianLinear(mesh, i_elem);
+                        double det_jacobian = jacobian(0, 0) * jacobian(1, 1) - jacobian(0, 1) * jacobian(1, 0);
+                        mat_mass (i_elem)(i, j) = unit_mat_mass (i, j) * det_jacobian;
+                    }
+                }
+            }
+        }
+        // Fill the term of block-diagonal parts for curved elements
+        for (int i_elem = 0; i_elem < num_element; i_elem++)
+        {
+            if (mesh.isCurved[i_elem])
+            {
+                for (int i = 0; i < Np; i++)
+                {
+                    for (int j = 0; j < Np; j++)
+                    {
+                        unit_mat_mass.clear();
+                        double det_jacobian = 0.0;
+                        for (int ig = 0; ig < n_quad_2d; ig++)
+                        {
+                            // unit mass matrix is the same in reference space is the same for linear elements
+                            ublas::matrix<double> jacobian = geometry::CalcJacobianCurved(mesh, i_elem, resdata.GPhi_Curved, n_quad_2d, ig);
+                            det_jacobian = jacobian(0, 0) * jacobian(1, 1) - jacobian(0, 1) * jacobian(1, 0);
+                            unit_mat_mass(i, j) += Phi(ig, i) * Phi(ig, j) * det_jacobian;
+                        }
+                        mat_mass (i_elem)(i, j) = unit_mat_mass (i, j);
+                    }
+                }
+            }
         }
         return mat_mass;
+    }
+
+    ublas::vector<ublas::matrix<double> > CalcInvMassMatrix(ublas::vector<ublas::matrix<double> > M)
+    {
+        int num_elem = M.size();
+        int Np = M(0).size1();
+        ublas::vector<ublas::matrix<double> > invM(num_elem, ublas::matrix<double>(Np, Np, 0.0));
+        for (int ielem = 0; ielem < num_elem; ielem++)
+        {
+            ublas::matrix<double> unit_invM (Np, Np, 0.0);
+            ublas::matrix<double> unit_M = M(ielem);
+            InvertMatrix(unit_M, unit_invM);
+            invM(ielem) = unit_invM;
+        }
+        return invM;
     }
 
     ublas::vector<double> CalcBaseFunction(ublas::matrix<double> TriLagrangeCoeff, double xi, double eta)

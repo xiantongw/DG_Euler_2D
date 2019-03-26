@@ -11,7 +11,8 @@
 #include "../include/utils.h"
 #include "../include/GetQuadraturePointsWeight2D.h"
 #include "../include/TriMesh.h"
-#include "../include/CalcResidual.h"
+#include "../include/ResData.h"
+#include "../include/geometry.h"
 
 
 namespace lagrange
@@ -25,7 +26,8 @@ namespace lagrange
 
     ublas::vector<double> MapPhysicalToReferenceLinear(ublas::vector<ublas::vector<double> > vertex, ublas::vector<double> point, int p);
 
-    ublas::matrix<double> ConstructMassMatrix(int p, TriMesh mesh);
+    ublas::vector<ublas::matrix<double> > ConstructMassMatrix(int p, TriMesh mesh, ResData resdata);
+    ublas::vector<ublas::matrix<double> > CalcInvMassMatrix(ublas::vector<ublas::matrix<double> > M);
 
     ublas::vector<double> CalcBaseFunction(ublas::matrix<double> TriLagrangeCoeff, double xi, double eta);
 

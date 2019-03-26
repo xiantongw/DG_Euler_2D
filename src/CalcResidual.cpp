@@ -190,7 +190,7 @@ ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata,
         int ielemL = mesh.B2E[iedge][0] - 1;
         int ilocL = mesh.B2E[iedge][1] - 1;
         ublas::vector<ublas::vector<double> > uL(Np, ublas::vector<double> (num_states, 0.0));
-        char* boundary_type;
+        string boundary_type;
 
         // Get the boundary type
         switch (mesh.B2E[iedge][2])
@@ -314,9 +314,7 @@ ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata,
                     Residual(ielemL * Np * num_states + ip * num_states + istate) += temp_sum_L(istate);
                 }
             }
-
         }
-
     }
     return Residual;
 }

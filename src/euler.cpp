@@ -119,11 +119,11 @@ namespace euler{
 
     }
 
-    ublas::vector<double> ApplyBoundaryCondition(ublas::vector<double> u, ublas::vector<double> norm,  char* boundary_type, Param& cparam, double &mws)
+    ublas::vector<double> ApplyBoundaryCondition(ublas::vector<double> u, ublas::vector<double> norm,  std::string boundary_type, Param& cparam, double &mws)
     {
         ublas::vector<double> num_flux(u.size());
 
-        if (strcasecmp(boundary_type, "Inflow") == 0){
+        if (strcasecmp(boundary_type.c_str(), "Inflow") == 0){
             double p = (cparam.gamma - 1.0) * (u[3] - 0.5 * (u[1]*u[1] + u[2]*u[2]) / u[0]);
             double un = (u[1] / u[0]) * norm[0] + (u[2] / u[0]) * norm[1];
             double c = sqrt(cparam.gamma * p / u[0]);
@@ -160,7 +160,7 @@ namespace euler{
             // Max Wave Speed
             mws = fabs(vb[0] * norm[0] + vb[1] * norm[1]) + cb;
 
-        } else if (strcasecmp(boundary_type, "Inviscid_Wall") == 0){
+        } else if (strcasecmp(boundary_type.c_str(), "Inviscid_Wall") == 0){
 
             double vb[2];
 
@@ -177,7 +177,7 @@ namespace euler{
             double p = (cparam.gamma - 1.0) * (u[3] - 0.5 * (u[1]*u[1] + u[2]*u[2]) / u[0]);
             mws = sqrt(pow(u[1] / u[0], 2) + pow(u[2] / u[0], 2)) + sqrt(cparam.gamma * p / u[0]);
 
-        } else if (strcasecmp(boundary_type, "Subsonic_Outflow") == 0){
+        } else if (strcasecmp(boundary_type.c_str(), "Subsonic_Outflow") == 0){
 
             /* Interior entropy*/
             double p = (cparam.gamma - 1.0) * (u[3] - 0.5 * (u[1]*u[1] + u[2]*u[2]) / u[0]);
@@ -206,7 +206,7 @@ namespace euler{
 
             mws = sqrt(pow(ub[1] / ub[0], 2) + pow(ub[2] / ub[0], 2)) + sqrt(cparam.gamma * pb / ub[0]);
 
-        } else if (strcasecmp(boundary_type, "Free_Stream") == 0){
+        } else if (strcasecmp(boundary_type.c_str(), "Free_Stream") == 0){
             double mws_temp;
             ublas::vector<double> u_free(4);
 
@@ -219,7 +219,7 @@ namespace euler{
             num_flux = CalcNumericalFlux(u, u_free, norm, cparam.gamma, "roe", mws_temp);
             mws = mws_temp;
         } else{
-            printf("ERROR: Unknown Boundary Condition: %s \n", boundary_type);
+            std::cout << "ERROR: Unknown Boundary Condition: " << boundary_type << std::endl;
             abort();
         }
         return num_flux;

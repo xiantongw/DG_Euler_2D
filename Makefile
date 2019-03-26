@@ -14,7 +14,7 @@ OBJECTS = ${BUILD_DIR}/TriMesh.o ${BUILD_DIR}/utils.o ${BUILD_DIR}/geometry.o\
 		${BUILD_DIR}/lagrange.o ${BUILD_DIR}/main.o ${BUILD_DIR}/InvertMatrix.o \
 		${BUILD_DIR}/ConstructCurveMesh.o ${BUILD_DIR}/GetQuadraturePointsWeight2D.o \
 		${BUILD_DIR}/GetQuadraturePointsWeight1D.o ${BUILD_DIR}/CalcResidual.o \
-		${BUILD_DIR}/euler.o
+		${BUILD_DIR}/euler.o ${BUILD_DIR}/Collective.o
 
 solver : ${OBJECTS}
 	${CC} ${OBJECTS} -o solver.exe
@@ -48,6 +48,9 @@ ${BUILD_DIR}/GetQuadraturePointsWeight1D.o: ${SRC_DIR}/GetQuadraturePointsWeight
 
 ${BUILD_DIR}/CalcResidual.o: ${SRC_DIR}/CalcResidual.cpp ${INCLUDE_DIR}/CalcResidual.h | ${BUILD_DIR}
 	${CC} ${CPPFLAG} -c ${SRC_DIR}/CalcResidual.cpp -o ${BUILD_DIR}/CalcResidual.o
+
+${BUILD_DIR}/Collective.o: ${SRC_DIR}/Collective.cpp ${INCLUDE_DIR}/Collective.h | ${BUILD_DIR}
+	${CC} ${CPPFLAG} -c ${SRC_DIR}/Collective.cpp -o ${BUILD_DIR}/Collective.o
 
 ${BUILD_DIR}/main.o: ${SRC_DIR}/main.cpp | ${BUILD_DIR}
 	${CC} ${CPPFLAG} -c ${SRC_DIR}/main.cpp -o ${BUILD_DIR}/main.o
