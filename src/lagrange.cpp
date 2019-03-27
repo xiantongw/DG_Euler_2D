@@ -115,7 +115,7 @@ namespace lagrange
         std::vector<double> xq_std;
         std::vector<double> wq_std;
         int n_quad_2d;
-        GetQuadraturePointsWeight2D(2, n_quad_2d, xq_std, wq_std);
+        GetQuadraturePointsWeight2D(9, n_quad_2d, xq_std, wq_std);
         // transfer the std vectors to ublas vectors
         ublas::vector<double> xq = utils::StdToBoostVector(xq_std);
         ublas::vector<double> wq = utils::StdToBoostVector(wq_std);
@@ -141,21 +141,21 @@ namespace lagrange
                 for (int ig = 0; ig < n_quad_2d; ig++)
                 {
                     // unit mass matrix is the same in reference space is the same for linear elements
-                    unit_mat_mass(i, j) += Phi(ig, i) * Phi(ig, j);
+                    unit_mat_mass(i, j) += Phi(ig, i) * Phi(ig, j) * wq(ig);
                 }
             }
         }
         // Fill the term of block-diagonal parts for linear elements
         for (int i_elem = 0; i_elem < num_element; i_elem++)
         {
+            ublas::matrix<double> jacobian = geometry::CalcJacobianLinear(mesh, i_elem);
+            double det_jacobian = jacobian(0, 0) * jacobian(1, 1) - jacobian(0, 1) * jacobian(1, 0);
             if (!mesh.isCurved[i_elem])
             {
                 for (int i = 0; i < Np; i++)
                 {
                     for (int j = 0; j < Np; j++)
                     {
-                        ublas::matrix<double> jacobian = geometry::CalcJacobianLinear(mesh, i_elem);
-                        double det_jacobian = jacobian(0, 0) * jacobian(1, 1) - jacobian(0, 1) * jacobian(1, 0);
                         mat_mass (i_elem)(i, j) = unit_mat_mass (i, j) * det_jacobian;
                     }
                 }
@@ -177,7 +177,7 @@ namespace lagrange
                             // unit mass matrix is the same in reference space is the same for linear elements
                             ublas::matrix<double> jacobian = geometry::CalcJacobianCurved(mesh, i_elem, resdata.GPhi_Curved, n_quad_2d, ig);
                             det_jacobian = jacobian(0, 0) * jacobian(1, 1) - jacobian(0, 1) * jacobian(1, 0);
-                            unit_mat_mass(i, j) += Phi(ig, i) * Phi(ig, j) * det_jacobian;
+                            unit_mat_mass(i, j) += Phi(ig, i) * Phi(ig, j) * det_jacobian * wq(ig);
                         }
                         mat_mass (i_elem)(i, j) = unit_mat_mass (i, j);
                     }

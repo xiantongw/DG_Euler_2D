@@ -32,6 +32,8 @@ namespace utils
     template<typename T>
     ublas::vector<T> StdToBoostVector(std::vector<T> std_vec);
 
+    double MaxBoostVector(ublas::vector<double> vec);
+
 }
 
 #endif

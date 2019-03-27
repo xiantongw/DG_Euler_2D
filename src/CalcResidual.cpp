@@ -2,7 +2,7 @@
 
 namespace ublas = boost::numeric::ublas;
 
-ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata, ublas::vector<double> States, int p)
+ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata, ublas::vector<double> States, ublas::vector<double>& dtA, int p)
 {
     // Unroll the mesh information
     int num_element = mesh.num_element;
@@ -29,8 +29,10 @@ ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata,
 	ublas::vector<double> x_quad_2d = resdata.x_quad_2d;
 	ublas::vector<double> w_quad_2d = resdata.w_quad_2d;
 
-    int elem_check = 0;
-    int ip_check = 2;
+    ublas::vector<double> mws_tally(num_element, 0.0);
+    ublas::vector<double> mws_on_quad(n_quad_1d, 0.0);
+    ublas::vector<double> jacobian_on_quad(n_quad_1d, 0.0);
+
     // Loop over elements
     // 1. Construct Jacobian 2.evealute interior contribution to the residual
     // Notice that there are two sets of elements in the mesh, curved and not curved
@@ -172,6 +174,7 @@ ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata,
                 }
                 double mws = 0.0;
                 ublas::vector<double> numerical_flux = euler::CalcNumericalFlux(uL_quad, uR_quad, norm_vec, gamma, "roe", mws);
+                mws_on_quad(ig) = mws;
                 temp_sum_L += Phi_1D[ilocL][ig][ip] * numerical_flux * jacobian_edge * w_quad_1d(ig);
                 temp_sum_R -= Phi_1D[ilocR][n_quad_1d - 1 - ig][ip] * numerical_flux * jacobian_edge * w_quad_1d(ig);
             }
@@ -180,6 +183,8 @@ ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata,
                 // the contribution from edge, !!! ADD !!!
                 Residual(ielemL * Np * num_states + ip * num_states + istate) += temp_sum_L(istate);
                 Residual(ielemR * Np * num_states + ip * num_states + istate) += temp_sum_R(istate);
+                mws_tally(ielemL) += utils::MaxBoostVector(mws_on_quad) * jacobian_edge;
+                mws_tally(ielemR) += utils::MaxBoostVector(mws_on_quad) * jacobian_edge;
             }
         }
     }
@@ -239,12 +244,14 @@ ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata,
                     double mws = 0.0;
                     // Apply the boudary condition
                     ublas::vector<double> numerical_flux = euler::ApplyBoundaryCondition(uL_quad, norm_vec, boundary_type, param, mws);
+                    mws_on_quad(ig) = mws;
                     temp_sum_L += Phi_1D[ilocL][ig][ip] * numerical_flux * jacobian_edge * w_quad_1d(ig);
                 }
                 for (int istate = 0; istate < num_states; istate++)
                 {
                     // the contribution from edge, !!! ADD !!!
                     Residual(ielemL * Np * num_states + ip * num_states + istate) += temp_sum_L(istate);
+                    mws_tally(ielemL) += utils::MaxBoostVector(mws_on_quad) * jacobian_edge;
                 }
             }
         }
@@ -304,17 +311,23 @@ ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata,
                     double jacobian_edge = ublas::norm_2(norm_on_quad_curved(ig));
                     ublas::vector<double> norm_vec = norm_on_quad_curved(ig) / jacobian_edge;
                     ublas::vector<double> numerical_flux = euler::ApplyBoundaryCondition(uL_quad, norm_vec, boundary_type, param, mws);
-                    // std::cout << numerical_flux << std::endl;
+                    mws_on_quad(ig) = mws;
+                    jacobian_on_quad(ig) = jacobian_edge;
                     temp_sum_L += Phi_1D[ilocL][ig][ip] * numerical_flux * jacobian_edge * w_quad_1d(ig);
-                    // std::cout << Phi_1D[ilocL][ig][ip] << std::endl;
                 }
                 for (int istate = 0; istate < num_states; istate++)
                 {
                     // the contribution from edge, !!! ADD !!!
                     Residual(ielemL * Np * num_states + ip * num_states + istate) += temp_sum_L(istate);
+                    mws_tally(ielemL) += utils::MaxBoostVector(mws_on_quad) * utils::MaxBoostVector(jacobian_on_quad);
                 }
             }
         }
+    }
+    // Calculate dtA
+    for (int i = 0; i < num_element; i++)
+    {
+        dtA(i) = 2.0 * param.cfl / mws_tally(i);
     }
     return Residual;
 }

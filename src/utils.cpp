@@ -82,4 +82,17 @@ namespace utils
     }
     template ublas::vector<double> StdToBoostVector<double>(std::vector<double> std_vec);
 
+    double MaxBoostVector(ublas::vector<double> vec)
+    {
+        double max_value = 0.0;
+        for (int i = 0; i < vec.size(); i++)
+        {
+            if (vec[i] > max_value)
+            {
+                max_value = vec[i];
+            }
+        }
+        return max_value;
+    }
+
 } // namespace utils

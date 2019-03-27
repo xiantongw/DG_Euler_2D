@@ -50,11 +50,13 @@ int main(int argc, char *argv[])
         }
     }
     ResData resdata = CalcResData(curved_mesh, p);
-    ublas::vector<double> Residual = CalcResidual(curved_mesh, param, resdata, States, p);
+    ublas::vector<double> dtA(curved_mesh.E.size(), 0.0);
+    ublas::vector<double> Residual = CalcResidual(curved_mesh, param, resdata, States, dtA, p);
     cout << "Total Residual Norm: " << ublas::norm_2(Residual) << endl;
-
     ublas::vector<ublas::matrix<double> > M = lagrange::ConstructMassMatrix(p, curved_mesh, resdata);
+    cout << M(0) << endl;
     ublas::vector<ublas::matrix<double> > invM = lagrange::CalcInvMassMatrix(M);
-
+    cout << invM(0) << endl;
+    //cout << dtA << endl;
     return 0;
 }
