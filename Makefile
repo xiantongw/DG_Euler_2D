@@ -1,7 +1,7 @@
 CC = icpc
 
 STDFLAG = -std=c++11
-OPTFLAG = -O0 -g
+OPTFLAG = -O3
 INCLUDEPATH = -I/opt/local/include
 
 CPPFLAG = ${STDFLAG} ${OPTFLAG} ${INCLUDEPATH} -Wno-unknown-pragmas
@@ -13,7 +13,7 @@ BUILD_DIR = build
 OBJECTS = ${BUILD_DIR}/TriMesh.o ${BUILD_DIR}/utils.o ${BUILD_DIR}/geometry.o\
 		${BUILD_DIR}/lagrange.o ${BUILD_DIR}/main.o ${BUILD_DIR}/InvertMatrix.o \
 		${BUILD_DIR}/ConstructCurveMesh.o ${BUILD_DIR}/GetQuadraturePointsWeight2D.o \
-		${BUILD_DIR}/GetQuadraturePointsWeight1D.o ${BUILD_DIR}/CalcResidual.o \
+		${BUILD_DIR}/GetQuadraturePointsWeight1D.o ${BUILD_DIR}/solver.o \
 		${BUILD_DIR}/euler.o ${BUILD_DIR}/Collective.o
 
 solver : ${OBJECTS}
@@ -46,8 +46,8 @@ ${BUILD_DIR}/GetQuadraturePointsWeight2D.o: ${SRC_DIR}/GetQuadraturePointsWeight
 ${BUILD_DIR}/GetQuadraturePointsWeight1D.o: ${SRC_DIR}/GetQuadraturePointsWeight1D.cpp ${INCLUDE_DIR}/GetQuadraturePointsWeight1D.h | ${BUILD_DIR}
 	${CC} ${CPPFLAG} -c ${SRC_DIR}/GetQuadraturePointsWeight1D.cpp -o ${BUILD_DIR}/GetQuadraturePointsWeight1D.o
 
-${BUILD_DIR}/CalcResidual.o: ${SRC_DIR}/CalcResidual.cpp ${INCLUDE_DIR}/CalcResidual.h | ${BUILD_DIR}
-	${CC} ${CPPFLAG} -c ${SRC_DIR}/CalcResidual.cpp -o ${BUILD_DIR}/CalcResidual.o
+${BUILD_DIR}/solver.o: ${SRC_DIR}/solver.cpp ${INCLUDE_DIR}/solver.h | ${BUILD_DIR}
+	${CC} ${CPPFLAG} -c ${SRC_DIR}/solver.cpp -o ${BUILD_DIR}/solver.o
 
 ${BUILD_DIR}/Collective.o: ${SRC_DIR}/Collective.cpp ${INCLUDE_DIR}/Collective.h | ${BUILD_DIR}
 	${CC} ${CPPFLAG} -c ${SRC_DIR}/Collective.cpp -o ${BUILD_DIR}/Collective.o

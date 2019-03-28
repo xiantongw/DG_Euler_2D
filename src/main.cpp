@@ -11,7 +11,7 @@
 #include "../include/geometry.h"
 #include "../include/ConstructCurveMesh.h"
 #include "../include/GetQuadraturePointsWeight2D.h"
-#include "../include/CalcResidual.h"
+#include "../include/solver.h"
 #include "../include/euler.h"
 #include "../include/Param.h"
 #include "../include/Collective.h"
@@ -49,14 +49,12 @@ int main(int argc, char *argv[])
                                                     0.5 * param.mach_inf * param.mach_inf;
         }
     }
-    ResData resdata = CalcResData(curved_mesh, p);
+    ResData resdata = solver::CalcResData(curved_mesh, p);
     ublas::vector<double> dtA(curved_mesh.E.size(), 0.0);
-    ublas::vector<double> Residual = CalcResidual(curved_mesh, param, resdata, States, dtA, p);
+    ublas::vector<double> Residual = solver::CalcResidual(curved_mesh, param, resdata, States, dtA, p);
     cout << "Total Residual Norm: " << ublas::norm_2(Residual) << endl;
     ublas::vector<ublas::matrix<double> > M = lagrange::ConstructMassMatrix(p, curved_mesh, resdata);
-    cout << M(0) << endl;
     ublas::vector<ublas::matrix<double> > invM = lagrange::CalcInvMassMatrix(M);
-    cout << invM(0) << endl;
-    //cout << dtA << endl;
+    cout << dtA << endl;
     return 0;
 }

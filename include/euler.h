@@ -5,6 +5,7 @@
 #include <vector>
 #include <cmath>
 #include <string>
+#include <cstring>
 
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/vector.hpp>

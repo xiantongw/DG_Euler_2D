@@ -8,4 +8,4 @@ bound1        Free_Stream
 bound2        Free_Stream
 bound3        Free_Stream
 mesh_file     ./mesh/bump0.gri
-order		  1
+order         2

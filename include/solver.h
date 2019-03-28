@@ -26,8 +26,10 @@ typedef boost::multi_array<double, 4> arr_4d;
 typedef boost::multi_array<double, 3> arr_3d;
 typedef boost::multi_array<double, 2> arr_2d;
 
-ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata, ublas::vector<double> States, ublas::vector<double>& dtA, int p);
+namespace solver {
+	ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata, ublas::vector<double> States, ublas::vector<double>& dtA, int p);
 
-ResData CalcResData(TriMesh mesh, int p);
+	ResData CalcResData(TriMesh mesh, int p);
+}
 
 #endif
