@@ -50,18 +50,19 @@ int main(int argc, char *argv[])
         }
     }
     ResData resdata = solver::CalcResData(curved_mesh, p);
-    ublas::vector<double> dtA(curved_mesh.E.size(), 0.0);
-    ublas::vector<double> Residual = solver::CalcResidual(curved_mesh, param, resdata, States, dtA, p);
-    cout << "Total Residual Norm: " << ublas::norm_2(Residual) << endl;
     ublas::vector<ublas::matrix<double> > M = lagrange::ConstructMassMatrix(p, curved_mesh, resdata);
     ublas::vector<ublas::matrix<double> > invM = lagrange::CalcInvMassMatrix(M);
 
-    int MAXITER = 10000000;
+    int MAXITER = 100000;
     int converged = 1;
     for (int niter = 0; niter < MAXITER; niter++)
     {
-        cout << niter << endl;
-        ublas::vector<double> States_new = solver::TimeMarching(curved_mesh, param, resdata, States, invM, p, converged);
+        // cout << niter << endl;
+        double norm_residual = 0.0;
+        ublas::vector<double> States_new = solver::TimeMarching(curved_mesh, param, resdata, States, invM, p, converged, norm_residual);
+        std::cout << "NITER: " << niter << "\t";
+        cout.setf(ios::scientific, ios::floatfield);
+        std::cout << setprecision(10) << norm_residual << std::endl;
         States = States_new;
         if (converged)
             break;

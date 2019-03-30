@@ -8,9 +8,9 @@ TriMesh::TriMesh(string &gri_filename_in)
     this->curved_group = -1;
     CalcI2E();
     CalcB2E();
-    FindCurvedIndex();
     CalcIn();
     CalcBn();
+    FindCurvedIndex();
 }
 
 TriMesh::TriMesh(TriMesh &mesh)
@@ -30,7 +30,10 @@ TriMesh::TriMesh(TriMesh &mesh)
     In = mesh.In;
     Bn = mesh.Bn;
     isCurved = mesh.isCurved;
-    CurvedIndex = mesh.CurvedIndex;
+    CurvedElementIndex = mesh.CurvedElementIndex;
+    CurvedEdgeIndex = mesh.CurvedEdgeIndex;
+    LinearElementIndex = mesh.LinearElementIndex;
+    LinearEdgeIndex = mesh.LinearEdgeIndex;
     curved_group = mesh.curved_group;
 }
 
@@ -255,12 +258,30 @@ void TriMesh::CalcB2E()
 
 void TriMesh::FindCurvedIndex()
 {
-    this->CurvedIndex.clear();
+    this->CurvedElementIndex.clear();
+    this->LinearElementIndex.clear();
+    this->CurvedEdgeIndex.clear();
+    this->LinearEdgeIndex.clear();
     for (int i = 0; i < this->isCurved.size(); i++)
     {
         if (this->isCurved[i])
         {
-            this->CurvedIndex.push_back(i);
+            this->CurvedElementIndex.push_back(i);
+        }
+        else
+        {
+            this->LinearElementIndex.push_back(i);
+        }
+    }
+    for (int i = 0; i < this->Bn.size(); i++)
+    {
+        if (this->Bn[i][3] > 0)
+        {
+            this->CurvedEdgeIndex.push_back(i);
+        }
+        else
+        {
+            this->LinearEdgeIndex.push_back(i);
         }
     }
 }

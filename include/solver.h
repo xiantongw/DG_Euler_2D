@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <omp.h>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/io.hpp>
@@ -33,7 +34,7 @@ namespace solver {
 
 	ResData CalcResData(TriMesh mesh, int p);
 
-	ublas::vector<double> TimeMarching(TriMesh mesh, Param& param, ResData& resdata, ublas::vector<double> States_old, ublas::vector<ublas::matrix<double> > invM, int p, int& converged);
+	ublas::vector<double> TimeMarching(TriMesh mesh, Param& param, ResData& resdata, ublas::vector<double> States_old, ublas::vector<ublas::matrix<double> > invM, int p, int& converged, double& norm_residual);
 
 }
 

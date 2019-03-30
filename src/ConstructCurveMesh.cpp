@@ -111,7 +111,7 @@ TriMesh ConstructCurveMesh(TriMesh& mesh, TriMesh& curved_mesh, double (*pBumpFu
         } // end of dealing with curved element
     } // End loop through all elements
     curved_mesh.curved_group = boundary_index + 1;
-    curved_mesh.FindCurvedIndex(); // Calculate the index of the curved elements
     curved_mesh.CalcBn();
+    curved_mesh.FindCurvedIndex(); // Calculate the index of the curved elements
     return curved_mesh;
 }

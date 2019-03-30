@@ -444,6 +444,18 @@ void GetQuadraturePointsWeight2D(int p, int &n, std::vector<double>& x, std::vec
           }
           break;
 
+        case 5:
+          n = n5;
+          for (int i=0; i< 2 * n; i++)
+          {
+            x.push_back(x5[i]);
+          }
+          for (int i=0; i< n; i++)
+          {
+            w.push_back(w5[i]);
+          }
+          break;
+
         case 9:
         n = n9;
         for (int i=0; i< 2 * n; i++)

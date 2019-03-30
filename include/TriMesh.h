@@ -32,7 +32,10 @@ class TriMesh
     vector<vector<double> > In;
     vector<vector<double> > Bn;
     vector<bool> isCurved;
-    vector<int> CurvedIndex;
+    vector<int> CurvedElementIndex;
+    vector<int> LinearElementIndex;
+    vector<int> CurvedEdgeIndex;
+    vector<int> LinearEdgeIndex;
 
     TriMesh(string &gri_filename_in);
     TriMesh(TriMesh &mesh);
@@ -43,8 +46,6 @@ class TriMesh
     void CalcBn();
     void FindCurvedIndex();
     void WriteGri(string &gri_filename);
-
-
 
 };
 

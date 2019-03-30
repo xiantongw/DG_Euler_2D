@@ -1,4 +1,4 @@
-CC = g++
+CC = icpc
 
 STDFLAG = -std=c++11
 OPTFLAG = -O3

@@ -29,33 +29,25 @@ namespace geometry
     {
         // In a curved element, the jacobian varies from the points eveluated on
         // Since GPhi on quadrature points are pre-caculated, so GPhi is passed in
-        ublas::matrix<double> jacobian(2, 2);
+        ublas::matrix<double> jacobian(2, 2, 0.0);
         // First, if this element is really a curved element?
-        if (mesh.isCurved[ielem])
+        std:vector<int> lagrange_nodes_index = mesh.E[ielem];
+        int Np = lagrange_nodes_index.size();
+        int p = int((sqrt(1 + 8.0 * Np) - 3) / 2);
+        ublas::matrix<double> Nodes_Coord(Np, 2);
+        for (int i = 0; i < Np; i++)
         {
-            std:vector<int> lagrange_nodes_index = mesh.E[ielem];
-            int Np = lagrange_nodes_index.size();
-            int p = int((sqrt(1 + 8.0 * Np) - 3) / 2);
-            ublas::matrix<double> Nodes_Coord(Np, 2);
-            for (int i = 0; i < Np; i++)
-            {
-                Nodes_Coord(i, 0) = mesh.V[lagrange_nodes_index[i] - 1][0];
-                Nodes_Coord(i, 1) = mesh.V[lagrange_nodes_index[i] - 1][1];
-            }
-            ublas::matrix <double> GPhi_on_quad(Np, 2, 0.0);
-            GPhi_Curved.resize(boost::extents[n_quad_2d][Np][2]);
-            for (int ip = 0; ip < Np; ip++)
-            {
-                GPhi_on_quad(ip, 0) = GPhi_Curved[ig][ip][0];
-                GPhi_on_quad(ip, 1) = GPhi_Curved[ig][ip][1];
-            }
-            ublas::axpy_prod(ublas::trans(Nodes_Coord), GPhi_on_quad, jacobian, true);
+            Nodes_Coord(i, 0) = mesh.V[lagrange_nodes_index[i] - 1][0];
+            Nodes_Coord(i, 1) = mesh.V[lagrange_nodes_index[i] - 1][1];
         }
-        else
+        ublas::matrix <double> GPhi_on_quad(Np, 2, 0.0);
+        GPhi_Curved.resize(boost::extents[n_quad_2d][Np][2]);
+        for (int ip = 0; ip < Np; ip++)
         {
-            std::cout << "This is NOT a curved element, Aborting..." << std::endl;
-            abort();
+            GPhi_on_quad(ip, 0) = GPhi_Curved[ig][ip][0];
+            GPhi_on_quad(ip, 1) = GPhi_Curved[ig][ip][1];
         }
+        ublas::axpy_prod(ublas::trans(Nodes_Coord), GPhi_on_quad, jacobian, true);
         return jacobian;
     }
 
