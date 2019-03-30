@@ -446,18 +446,17 @@ namespace solver{
         return resdata;
     }
 
-    ublas::vector<double> TimeMarching(TriMesh mesh, Param& param, ResData& resdata, ublas::vector<double> States_old, ublas::vector<ublas::matrix<double> > invM, int p)
+    ublas::vector<double> TimeMarching(TriMesh mesh, Param& param, ResData& resdata, ublas::vector<double> States_old, ublas::vector<ublas::matrix<double> > invM, int p, int& converged)
     {
         ublas::vector<double> States_new = States_old;
         ublas::vector<double> States_FE = States_old;
         ublas::vector<double> Residual_FE(States_old.size(), 0.0);
         int num_elements = invM.size(); int num_states = 4;
         int Np = int((p + 1) * (p + 2) / 2);
-        double eps = 1e-20;
+        double eps = 1e-6;
         ublas::vector<double> dt (num_elements), dt_temp (num_elements);;
         ublas::vector<double> Residual = CalcResidual(mesh, param, resdata, States_old, dt, p); // Caculate the residual, and the time step
         // Caculate the FE state in RK2, the first step
-        int converged = 1;
         for (int ielem = 0; ielem < num_elements; ielem++)
         {
             // Get the states in this element
@@ -473,7 +472,39 @@ namespace solver{
                     R(ip, istate) = Residual(ielem * Np * num_states + ip * num_states + istate);
                 }
             }
-            // Caculate the norm of the residual in this element
+            ublas::matrix<double> invM_mul_R(Np, num_states, 0.0);
+            ublas::axpy_prod(invM(ielem), R, invM_mul_R, false);
+            u_FE = u - dt(ielem) * invM_mul_R;
+            // Apply the values of u_FE to the long vector State_FE
+            for (int ip = 0; ip < Np; ip++)
+            {
+                for (int istate = 0; istate < num_states; istate++)
+                {
+                    States_FE(ielem * Np * num_states + ip * num_states + istate) = u_FE(ip, istate);
+                }
+            }
+        }
+        Residual_FE = CalcResidual(mesh, param, resdata, States_FE, dt_temp, p);
+        cout.setf(ios::scientific, ios::floatfield);
+        std::cout << setprecision(10) << ublas::norm_2(Residual_FE) << std::endl;
+        // The second step of RK2
+        for (int ielem = 0; ielem < num_elements; ielem++)
+        {
+            // check if an element is converged
+            // Get the states in this element
+            ublas::matrix<double> u(Np, num_states, 0.0);
+            ublas::matrix<double> R(Np, num_states, 0.0);
+            ublas::matrix<double> u_FE(Np, num_states, 0.0);
+            ublas::matrix<double> u_new(Np, num_states, 0.0);
+            for (int ip = 0; ip < Np; ip++)
+            {
+                for (int istate = 0; istate < num_states; istate++)
+                {
+                    u(ip, istate) = States_old(ielem * Np * num_states + ip * num_states + istate);
+                    u_FE(ip, istate) = States_FE(ielem * Np * num_states + ip * num_states + istate);
+                    R(ip, istate) = Residual_FE(ielem * Np * num_states + ip * num_states + istate);
+                }
+            }
             double r_norm = 0.0;
             for (int ip = 0; ip < Np; ip++)
             {
@@ -487,29 +518,8 @@ namespace solver{
             r_norm = r_norm / Np;
             if (r_norm > eps)
             {
-                std::cout << ielem << ' ' << r_norm << std::endl;
                 converged = 0;
                 ublas::matrix<double> invM_mul_R(Np, num_states, 0.0);
-                ublas::axpy_prod(invM(ielem), R, invM_mul_R, false);
-                u_FE = u - dt(ielem) * invM_mul_R;
-                // Apply the values of u_FE to the long vector State_FE
-                for (int ip = 0; ip < Np; ip++)
-                {
-                    for (int istate = 0; istate < num_states; istate++)
-                    {
-                        States_FE(ielem * Np * num_states + ip * num_states + istate) = u_FE(ip, istate);
-                    }
-                }
-                // The second step of RK2
-                Residual_FE = CalcResidual(mesh, param, resdata, States_FE, dt_temp, p);
-                for (int ip = 0; ip < Np; ip++)
-                {
-                    for (int istate = 0; istate < num_states; istate++)
-                    {
-                        R(ip, istate) = Residual_FE(ielem * Np * num_states + ip * num_states + istate);
-                    }
-                }
-                invM_mul_R.clear();
                 ublas::axpy_prod(invM(ielem), R, invM_mul_R, false);
                 u_new = 0.5 * (u + u_FE - dt(ielem) * invM_mul_R);
                 // Apply the values of u_new to the long vector State_new
@@ -522,7 +532,7 @@ namespace solver{
                 }
             }
         }
-        return States_new;
+        return  States_new;
     }
 
 } // end namespace solver
