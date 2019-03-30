@@ -32,6 +32,7 @@ namespace solver{
         ublas::vector<double> w_quad_2d = resdata.w_quad_2d;
 
         ublas::vector<double> mws_tally(num_element, 0.0);
+        ublas::vector<double> element_jacobian(num_element, 0.0);
         ublas::vector<double> mws_on_quad(n_quad_1d, 0.0);
         ublas::vector<double> jacobian_on_quad(n_quad_1d, 0.0);
 
@@ -62,6 +63,7 @@ namespace solver{
                 ublas::matrix<double> inv_jacobian (jacobian.size1(), jacobian.size2());
                 double det_jacobian = jacobian(0, 0) * jacobian(1, 1) - jacobian(0, 1) * jacobian(1, 0);
                 InvertMatrix(jacobian, inv_jacobian);
+                element_jacobian(ielem) = det_jacobian;
                 // Do the integration using quadrature points, which is the interior contribution of the residual
                 for (int ip = 0; ip < Np; ip++) // loop over all lagrange nodes
                 {
@@ -117,6 +119,7 @@ namespace solver{
                         ublas::matrix<double> inv_jacobian (jacobian.size1(), jacobian.size2());
                         double det_jacobian = jacobian(0, 0) * jacobian(1, 1) - jacobian(0, 1) * jacobian(1, 0);
                         InvertMatrix(jacobian, inv_jacobian);
+                        element_jacobian(ielem) = det_jacobian;
 
                         ublas::matrix<double> analytical_flux = euler::CalcAnalyticalFlux(state_on_quad, gamma);
                         ublas::vector<double> GPhi_on_quad (2, 0.0);
@@ -329,7 +332,7 @@ namespace solver{
         // Calculate dtA
         for (int i = 0; i < num_element; i++)
         {
-            dtA(i) = 2.0 * param.cfl / mws_tally(i);
+            dtA(i) = 2.0 * element_jacobian(i) * param.cfl / mws_tally(i);
         }
         return Residual;
     }
@@ -441,6 +444,85 @@ namespace solver{
         resdata.GPhi_1D = GPhi_1D;
         resdata.GPhi_1D_Curved = GPhi_1D_Curved;
         return resdata;
+    }
+
+    ublas::vector<double> TimeMarching(TriMesh mesh, Param& param, ResData& resdata, ublas::vector<double> States_old, ublas::vector<ublas::matrix<double> > invM, int p)
+    {
+        ublas::vector<double> States_new = States_old;
+        ublas::vector<double> States_FE = States_old;
+        ublas::vector<double> Residual_FE(States_old.size(), 0.0);
+        int num_elements = invM.size(); int num_states = 4;
+        int Np = int((p + 1) * (p + 2) / 2);
+        double eps = 1e-20;
+        ublas::vector<double> dt (num_elements), dt_temp (num_elements);;
+        ublas::vector<double> Residual = CalcResidual(mesh, param, resdata, States_old, dt, p); // Caculate the residual, and the time step
+        // Caculate the FE state in RK2, the first step
+        int converged = 1;
+        for (int ielem = 0; ielem < num_elements; ielem++)
+        {
+            // Get the states in this element
+            ublas::matrix<double> u(Np, num_states, 0.0);
+            ublas::matrix<double> R(Np, num_states, 0.0);
+            ublas::matrix<double> u_FE(Np, num_states, 0.0);
+            ublas::matrix<double> u_new(Np, num_states, 0.0);
+            for (int ip = 0; ip < Np; ip++)
+            {
+                for (int istate = 0; istate < num_states; istate++)
+                {
+                    u(ip, istate) = States_old(ielem * Np * num_states + ip * num_states + istate);
+                    R(ip, istate) = Residual(ielem * Np * num_states + ip * num_states + istate);
+                }
+            }
+            // Caculate the norm of the residual in this element
+            double r_norm = 0.0;
+            for (int ip = 0; ip < Np; ip++)
+            {
+                ublas::vector<double> Rp(num_states, 0.0);
+                for (int istate = 0; istate < num_states; istate++)
+                {
+                    Rp(istate) = R(ip, istate);
+                }
+                r_norm += ublas::norm_2(Rp);
+            }
+            r_norm = r_norm / Np;
+            if (r_norm > eps)
+            {
+                std::cout << ielem << ' ' << r_norm << std::endl;
+                converged = 0;
+                ublas::matrix<double> invM_mul_R(Np, num_states, 0.0);
+                ublas::axpy_prod(invM(ielem), R, invM_mul_R, false);
+                u_FE = u - dt(ielem) * invM_mul_R;
+                // Apply the values of u_FE to the long vector State_FE
+                for (int ip = 0; ip < Np; ip++)
+                {
+                    for (int istate = 0; istate < num_states; istate++)
+                    {
+                        States_FE(ielem * Np * num_states + ip * num_states + istate) = u_FE(ip, istate);
+                    }
+                }
+                // The second step of RK2
+                Residual_FE = CalcResidual(mesh, param, resdata, States_FE, dt_temp, p);
+                for (int ip = 0; ip < Np; ip++)
+                {
+                    for (int istate = 0; istate < num_states; istate++)
+                    {
+                        R(ip, istate) = Residual_FE(ielem * Np * num_states + ip * num_states + istate);
+                    }
+                }
+                invM_mul_R.clear();
+                ublas::axpy_prod(invM(ielem), R, invM_mul_R, false);
+                u_new = 0.5 * (u + u_FE - dt(ielem) * invM_mul_R);
+                // Apply the values of u_new to the long vector State_new
+                for (int ip = 0; ip < Np; ip++)
+                {
+                    for (int istate = 0; istate < num_states; istate++)
+                    {
+                        States_new(ielem * Np * num_states + ip * num_states + istate) = u_new(ip, istate);
+                    }
+                }
+            }
+        }
+        return States_new;
     }
 
 } // end namespace solver

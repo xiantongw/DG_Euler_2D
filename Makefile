@@ -1,7 +1,7 @@
 CC = icpc
 
 STDFLAG = -std=c++11
-OPTFLAG = -O3
+OPTFLAG = -O0 -g
 INCLUDEPATH = -I/opt/local/include
 
 CPPFLAG = ${STDFLAG} ${OPTFLAG} ${INCLUDEPATH} -Wno-unknown-pragmas

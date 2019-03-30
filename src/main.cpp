@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
     cout << "Total Residual Norm: " << ublas::norm_2(Residual) << endl;
     ublas::vector<ublas::matrix<double> > M = lagrange::ConstructMassMatrix(p, curved_mesh, resdata);
     ublas::vector<ublas::matrix<double> > invM = lagrange::CalcInvMassMatrix(M);
-    cout << dtA << endl;
+    ublas::vector<double> States_new = solver::TimeMarching(curved_mesh, param, resdata, States, invM, p);
+    ublas::vector<double> States_new2 = solver::TimeMarching(curved_mesh, param, resdata, States_new, invM, p);
     return 0;
 }
