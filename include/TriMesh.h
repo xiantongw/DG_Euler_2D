@@ -24,6 +24,7 @@ class TriMesh
     vector<vector<int> > E;
     vector<vector<double> > V;
     vector<vector<vector<int> > > B;
+    vector<double> Area;
     vector<string> Bname;
     vector<string> name_base;
     vector<int> n_base;
@@ -44,6 +45,7 @@ class TriMesh
     void CalcB2E();
     void CalcIn();
     void CalcBn();
+    void CalcArea();
     void FindCurvedIndex();
     void WriteGri(string &gri_filename);
 

@@ -38,34 +38,35 @@ int main(int argc, char *argv[])
     ConstructCurveMesh(mesh, curved_mesh, geometry::BumpFunction, boundary_name, p + 1);
     ublas::vector<double> States (curved_mesh.num_element * Np * 4, 0.0);
     // Construct free stream state
+    ublas::vector<double> u_free = euler::CalcFreeStreamState_2DEuler(param);
     for (int ielem = 0; ielem < curved_mesh.num_element; ielem++)
     {
         for (int ip = 0; ip < Np; ip++)
         {
-            States(ielem * Np * 4 + ip * 4 + 0) = 1.0;
-            States(ielem * Np * 4 + ip * 4 + 1) = param.mach_inf * cos(param.attack_angle);
-            States(ielem * Np * 4 + ip * 4 + 2) = param.mach_inf * sin(param.attack_angle);
-            States(ielem * Np * 4 + ip * 4 + 3) = 1 / (param.gamma * (param.gamma - 1)) +
-                                                    0.5 * param.mach_inf * param.mach_inf;
+            States(ielem * Np * 4 + ip * 4 + 0) = u_free(0);
+            States(ielem * Np * 4 + ip * 4 + 1) = u_free(1);
+            States(ielem * Np * 4 + ip * 4 + 2) = u_free(2);
+            States(ielem * Np * 4 + ip * 4 + 3) = u_free(3);
         }
     }
     ResData resdata = solver::CalcResData(curved_mesh, p);
+    ublas::vector<double> dt(curved_mesh.E.size());
     ublas::vector<ublas::matrix<double> > M = lagrange::ConstructMassMatrix(p, curved_mesh, resdata);
     ublas::vector<ublas::matrix<double> > invM = lagrange::CalcInvMassMatrix(M);
-
-    int MAXITER = 100000;
-    int converged = 1;
+    int MAXITER = param.MAXITER;
+    int converged = 0;
+    ublas::vector<double> States_new (curved_mesh.num_element * Np * 4, 0.0);
     for (int niter = 0; niter < MAXITER; niter++)
     {
         // cout << niter << endl;
         double norm_residual = 0.0;
-        ublas::vector<double> States_new = solver::TimeMarching(curved_mesh, param, resdata, States, invM, p, converged, norm_residual);
-        std::cout << "NITER: " << niter << "\t";
+        States_new = solver::TimeMarching_TVDRK3(curved_mesh, param, resdata, States, invM, p, converged, norm_residual);
+        std::cout << "NITER: " << niter << "\t" << "Residual Norm_Inf: ";
         cout.setf(ios::scientific, ios::floatfield);
         std::cout << setprecision(10) << norm_residual << std::endl;
         States = States_new;
         if (converged)
-            break;
+           break;
     }
     return 0;
 }

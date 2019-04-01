@@ -6,6 +6,7 @@ TriMesh::TriMesh(string &gri_filename_in)
     ReadGri(this->gri_filename);
     this->isCurved = vector<bool> (this->E.size(), false);
     this->curved_group = -1;
+    CalcArea();
     CalcI2E();
     CalcB2E();
     CalcIn();
@@ -29,6 +30,7 @@ TriMesh::TriMesh(TriMesh &mesh)
     B2E = mesh.B2E;
     In = mesh.In;
     Bn = mesh.Bn;
+    Area = mesh.Area;
     isCurved = mesh.isCurved;
     CurvedElementIndex = mesh.CurvedElementIndex;
     CurvedEdgeIndex = mesh.CurvedEdgeIndex;
@@ -337,6 +339,20 @@ void TriMesh::CalcBn()
     this->Bn = Bn;
 }
 
+void TriMesh::CalcArea()
+{
+    vector<double> Area(this->num_element);
+    double xA, yA, xB, yB, xC, yC, area;
+    for (int i = 0; i < this->num_element; i++)
+    {
+        xA = this->V[this->E[i][0] - 1][0]; yA = this->V[this->E[i][0] - 1][1];
+        xB = this->V[this->E[i][1] - 1][0]; yB = this->V[this->E[i][1] - 1][1];
+        xC = this->V[this->E[i][2] - 1][0]; yC = this->V[this->E[i][2] - 1][1];
+        area = abs(0.5 * (xA * (yB - yC) + xB * (yC - yA) + xC * (yA - yB)));
+        Area[i] = area;
+    }
+    this->Area = Area;
+}
 
 void TriMesh::WriteGri(string& gri_filename)
 {

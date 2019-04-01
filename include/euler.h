@@ -24,6 +24,8 @@ namespace euler
                                             double gamma, char* type_flux, double& mws);
 
     ublas::vector<double> ApplyBoundaryCondition(ublas::vector<double> u, ublas::vector<double> norm, std::string boundary_type, Param& cparam, double &mws);
+
+    ublas::vector<double> CalcFreeStreamState_2DEuler(Param& param);
 }
 
 #endif

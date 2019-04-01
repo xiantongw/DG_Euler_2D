@@ -21,7 +21,6 @@ namespace geometry
         jacobian(0, 1) = vertex(2, 0) - vertex(0, 0);
         jacobian(1, 0) = vertex(1, 1) - vertex(0, 1);
         jacobian(1, 1) = vertex(2, 1) - vertex(0, 1);
-
         return jacobian;
     }
 
@@ -47,7 +46,7 @@ namespace geometry
             GPhi_on_quad(ip, 0) = GPhi_Curved[ig][ip][0];
             GPhi_on_quad(ip, 1) = GPhi_Curved[ig][ip][1];
         }
-        ublas::axpy_prod(ublas::trans(Nodes_Coord), GPhi_on_quad, jacobian, true);
+        ublas::axpy_prod(ublas::trans(Nodes_Coord), GPhi_on_quad, jacobian, false);
         return jacobian;
     }
 

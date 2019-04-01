@@ -48,6 +48,19 @@ Param ReadParamIn(string param_fname)
 		}else if (strcasecmp(param_name.c_str(), "order") == 0)
 		{
 			param.order = int(atof(param_value.c_str()));
+		}else if (strcasecmp(param_name.c_str(), "eps") == 0)
+		{
+			param.eps = atof(param_value.c_str());
+		}else if (strcasecmp(param_name.c_str(), "MAXITER") == 0)
+		{
+			param.MAXITER = int(atof(param_value.c_str()));
+		}else if (strcasecmp(param_name.c_str(), "T_inf") == 0)
+		{
+			param.T_inf = atof(param_value.c_str());
+		}
+		else if (strcasecmp(param_name.c_str(), "R") == 0)
+		{
+			param.R = atof(param_value.c_str());
 		}
 	}
 	param_file.close();

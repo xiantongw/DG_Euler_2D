@@ -27,6 +27,10 @@ typedef struct ResData{
 	arr_3d Phi_1D_Curved;
 	arr_4d GPhi_1D;
 	arr_4d GPhi_1D_Curved;
+	ublas::matrix<ublas::matrix<double> > jacobian_in_curved_elements;
+	ublas::matrix<ublas::matrix<double> > invjacobian_in_curved_elements;
+	ublas::vector<ublas::matrix<double> > jacobian_in_linear_elements;
+	ublas::vector<ublas::matrix<double> > invjacobian_in_linear_elements;
 } ResData;
 
 #endif

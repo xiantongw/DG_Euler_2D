@@ -18,6 +18,11 @@ namespace euler{
         double E = state(3) / rho;
         double q = sqrt(u * u + v * v);
         double p = (gamma - 1) * (rho * E - 0.5 * rho * q * q);
+        if (p < 0)
+        {
+            std::cout << "Negative Presure!!!" << std::endl;
+            abort();
+        }
         double H = E + p / rho;
         // assign values to F
         F(0, 0) = rho * u;         F(0, 1) = rho * v;
@@ -98,8 +103,8 @@ namespace euler{
             ublas::matrix<double> FR = CalcAnalyticalFlux(uR, gamma);
 
             ublas::vector<double> FL_hat(4, 0.0), FR_hat(4, 0.0);
-            ublas::axpy_prod(FL, n, FL_hat, true);
-            ublas::axpy_prod(FR, n, FR_hat, true);
+            ublas::axpy_prod(FL, n, FL_hat, false);
+            ublas::axpy_prod(FR, n, FR_hat, false);
 
             F_hat[0] = 0.5 * (FL_hat[0] + FR_hat[0]) - 0.5 * (fabs(lambda_3) * drho + C1);
             F_hat[1] = 0.5 * (FL_hat[1] + FR_hat[1]) - 0.5 * (fabs(lambda_3) * drhov_vec[0] + C1 * v_roe_vec[0] + C2 * n[0]);
@@ -121,7 +126,8 @@ namespace euler{
 
     ublas::vector<double> ApplyBoundaryCondition(ublas::vector<double> u, ublas::vector<double> norm,  std::string boundary_type, Param& cparam, double &mws)
     {
-        ublas::vector<double> num_flux(u.size());
+        ublas::vector<double> num_flux(u.size(), 0.0);
+        num_flux.clear();
 
         if (strcasecmp(boundary_type.c_str(), "Inflow") == 0){
             double p = (cparam.gamma - 1.0) * (u[3] - 0.5 * (u[1]*u[1] + u[2]*u[2]) / u[0]);
@@ -154,9 +160,10 @@ namespace euler{
             double vb[2] = {Mb * cb * cos(cparam.attack_angle), Mb * cb * sin(cparam.attack_angle)};
             double rhoEb = pb / (cparam.gamma - 1.0) + 0.5 * rhob * (vb[0] * vb[0] + vb[1] * vb[1]);
             ublas::vector<double> ub(4, 0.0);
-            ub(0) = rhob; ub(1) = rhob * vb[0]; ub(2) = rhob * vb[1]; ub(3) = rhoEb;
+            ub(0) = rhob;         ub(1) = rhob * vb[0];
+            ub(2) = rhob * vb[1]; ub(3) = rhoEb;
             ublas::matrix<double> F_b = CalcAnalyticalFlux(ub, cparam.gamma);
-            ublas::axpy_prod(F_b, norm, num_flux, true);
+            ublas::axpy_prod(F_b, norm, num_flux, false);
             // Max Wave Speed
             mws = fabs(vb[0] * norm[0] + vb[1] * norm[1]) + cb;
 
@@ -200,22 +207,16 @@ namespace euler{
             double rhoEb = pb / (cparam.gamma - 1.0) + 0.5 * rhob * (vb[0] * vb[0] + vb[1] * vb[1]);
 
             ublas::vector<double> ub(4, 0.0);
-            ub(0) = rhob; ub(1) = rhob * vb[0]; ub(2) = rhob * vb[1]; ub(3) = rhoEb;
+            ub(0) = rhob;         ub(1) = rhob * vb[0];
+            ub(2) = rhob * vb[1]; ub(3) = rhoEb;
             ublas::matrix<double> F_b = CalcAnalyticalFlux(ub, cparam.gamma);
-            ublas::axpy_prod(F_b, norm, num_flux, true); // num_flux is passed out
+            ublas::axpy_prod(F_b, norm, num_flux, false); // num_flux is passed out
 
             mws = sqrt(pow(ub[1] / ub[0], 2) + pow(ub[2] / ub[0], 2)) + sqrt(cparam.gamma * pb / ub[0]);
 
         } else if (strcasecmp(boundary_type.c_str(), "Free_Stream") == 0){
             double mws_temp;
-            ublas::vector<double> u_free(4);
-
-            u_free[0] = 1.0;
-            u_free[1] = cparam.mach_inf * cos(cparam.attack_angle);
-            u_free[2] = cparam.mach_inf * sin(cparam.attack_angle);
-            u_free[3] = 1 / (cparam.gamma * (cparam.gamma - 1)) +
-                            0.5 * cparam.mach_inf * cparam.mach_inf;
-
+            ublas::vector<double> u_free = CalcFreeStreamState_2DEuler(cparam);
             num_flux = CalcNumericalFlux(u, u_free, norm, cparam.gamma, "roe", mws_temp);
             mws = mws_temp;
         } else{
@@ -223,5 +224,20 @@ namespace euler{
             abort();
         }
         return num_flux;
+    }
+
+    ublas::vector<double> CalcFreeStreamState_2DEuler(Param& param)
+    {
+        ublas::vector<double> state(4, 0.0);
+        double T_inf = 1.0; double R = 1.0;
+        double rho_inf = param.p_inf / (R * T_inf);
+        double c_inf = sqrt(param.gamma * R * T_inf);
+        double u = c_inf * param.mach_inf;
+        double rhoE = param.p_inf * param.p_inf / (param.gamma - 1.0) + 0.5 * rho_inf * u * u;
+        state(0) = rho_inf;
+        state(1) = u;
+        state(2) = 0.0;
+        state(3) = rhoE;
+        return state;
     }
 } // end namespace euler

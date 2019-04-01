@@ -59,6 +59,6 @@ ${BUILD_DIR}:
 	mkdir -p build
 
 clean:
-	rm -rf solver.exe
-	rm -rf ${BUILD_DIR}
+	rm -rf solver*.exe
+	rm -rf ${BUILD_DIR}*
 

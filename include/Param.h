@@ -7,6 +7,10 @@ typedef struct Param{
     double attack_angle;
     double gamma;
     double p_inf;
+    double T_inf;
+    double R;
+    double eps;
+    int MAXITER;
     std::string bound0;
     std::string bound1;
     std::string bound2;

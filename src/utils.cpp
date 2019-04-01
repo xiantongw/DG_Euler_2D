@@ -95,4 +95,17 @@ namespace utils
         return max_value;
     }
 
+    ublas::matrix<double> Invert22Matrix(ublas::matrix<double> mat_input)
+    {
+        double a, b, c, d;
+        ublas::matrix<double> mat_inversed(2, 2, 0.0);
+        a = mat_input(0, 0); b = mat_input(0, 1);
+        c = mat_input(1, 0); d = mat_input(1, 1);
+        double det = a * d - b * c;
+        mat_inversed(0, 0) = d / det;
+        mat_inversed(0, 1) = -b / det;
+        mat_inversed(1, 0) = -c / det;
+        mat_inversed(1, 1) = a /det;
+        return mat_inversed;
+    }
 } // namespace utils

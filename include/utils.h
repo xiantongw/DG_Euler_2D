@@ -34,6 +34,8 @@ namespace utils
 
     double MaxBoostVector(ublas::vector<double> vec);
 
+    ublas::matrix<double> Invert22Matrix(ublas::matrix<double> mat_input);
+
 }
 
 #endif
