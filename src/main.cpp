@@ -61,9 +61,12 @@ int main(int argc, char *argv[])
         // cout << niter << endl;
         double norm_residual = 0.0;
         States_new = solver::TimeMarching_TVDRK3(curved_mesh, param, resdata, States, invM, p, converged, norm_residual);
-        std::cout << "NITER: " << niter << "\t" << "Residual Norm_Inf: ";
-        cout.setf(ios::scientific, ios::floatfield);
-        std::cout << setprecision(10) << norm_residual << std::endl;
+	    if (niter % 100 == 0)
+	    {
+            std::cout << "NITER: " << niter << "\t" << "Residual Norm_Inf: ";
+            cout.setf(ios::scientific, ios::floatfield);
+            std::cout << setprecision(10) << norm_residual << std::endl;
+        }
         States = States_new;
         if (converged)
            break;
