@@ -11,5 +11,5 @@ bound2        Inviscid_Wall
 bound3        Inflow
 mesh_file     ./mesh/bump0.gri
 order         1
-eps           1e-2
-MAXITER       10000
+eps           1e-7
+MAXITER       100000
