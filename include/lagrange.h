@@ -26,6 +26,8 @@ namespace lagrange
 
     ublas::vector<double> MapPhysicalToReferenceLinear(ublas::vector<ublas::vector<double> > vertex, ublas::vector<double> point, int p);
 
+    ublas::vector<ublas::vector<double> > MapReferenceToPhysical(TriMesh mesh,  int ielem, int p, double (*pBumpFunction)(double));
+
     ublas::vector<ublas::matrix<double> > ConstructMassMatrix(int p, TriMesh mesh, ResData resdata);
     ublas::vector<ublas::matrix<double> > CalcInvMassMatrix(ublas::vector<ublas::matrix<double> > M);
 

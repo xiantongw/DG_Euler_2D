@@ -400,6 +400,7 @@ namespace solver{
         resdata.Nq = Nq;
 
         arr_2d Phi(boost::extents[n_quad_2d][Np]); resdata.Phi.resize(boost::extents[n_quad_2d][Np]);
+        arr_2d Phi_Curved(boost::extents[n_quad_2d][Nq]); resdata.Phi_Curved.resize(boost::extents[n_quad_2d][Nq]);
         arr_3d GPhi(boost::extents[n_quad_2d][Np][2]); resdata.GPhi.resize(boost::extents[n_quad_2d][Np][2]);
         arr_3d GPhi_Curved(boost::extents[n_quad_2d][Nq][2]); resdata.GPhi_Curved.resize(boost::extents[n_quad_2d][Nq][2]);
         // Pre-calculate the basis functions on edge quad nodes
@@ -426,9 +427,11 @@ namespace solver{
         {
             double xi = x_quad_2d[2 * ig];
             double eta = x_quad_2d[2 * ig + 1];
+            ublas::vector<double> phi_curved = lagrange::CalcBaseFunction(TriLagrangeCoeff_Curved, xi, eta);
             ublas::matrix<double> gphi_curved = lagrange::CalcBaseFunctionGradient(TriLagrangeCoeff_Curved, xi, eta);
             for (int ipi = 0; ipi < Nq; ipi++)
             {
+                Phi_Curved[ig][ipi] = phi_curved(ipi);
                 GPhi_Curved[ig][ipi][0] = gphi_curved(ipi, 0);
                 GPhi_Curved[ig][ipi][1] = gphi_curved(ipi, 1);
             }
@@ -502,6 +505,7 @@ namespace solver{
         resdata.invjacobian_in_curved_elements = inv_jacobian_curved;
         resdata.invjacobian_in_linear_elements = inv_jacobian_linear;
         resdata.Phi = Phi;
+        resdata.Phi_Curved = Phi_Curved;
         resdata.GPhi = GPhi;
         resdata.GPhi_Curved = GPhi_Curved;
         resdata.Phi_1D = Phi_1D;
@@ -620,6 +624,52 @@ namespace solver{
         if (norm_residual < eps)
             converged = 1;
         return  States_new;
+    }
+
+    void PostProc(TriMesh mesh, ublas::vector<double> States, int p, ublas::vector<ublas::matrix<double> >& Nodes, ublas::vector<ublas::matrix<double> >& States_on_Nodes)
+    {
+        int num_elements = mesh.E.size();
+        int Np = int((p + 1) * (p + 2) / 2);
+        int num_states = 4;
+        ublas::vector<ublas::vector<double> > node_physical;
+        if (p == 0)
+        {
+            int Np_solution = 3;
+            for (int ielem = 0; ielem < num_elements; ielem++)
+            {
+                node_physical = lagrange::MapReferenceToPhysical(mesh, ielem, 1, geometry::BumpFunction);
+                for (int ip = 0; ip < Np_solution; ip++)
+                {
+                    for (int i = 0; i < 2; i++)
+                    {
+                        Nodes(ielem)(ip, i) = node_physical(ip)(i);
+                    }
+                    for (int istate = 0; istate < num_states; istate++)
+                    {
+                        int ipi = int (ip / 3);
+                        States_on_Nodes(ielem)(ip, istate) = States(ielem * Np * num_states + ipi * num_states + istate);
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (int ielem = 0; ielem < num_elements; ielem++)
+            {
+                node_physical = lagrange::MapReferenceToPhysical(mesh, ielem, p, geometry::BumpFunction);
+                for (int ip = 0; ip < Np; ip++)
+                {
+                    for (int i = 0; i < 2; i++)
+                    {
+                        Nodes(ielem)(ip, i) = node_physical(ip)(i);
+                    }
+                    for (int istate = 0; istate < num_states; istate++)
+                    {
+                        States_on_Nodes(ielem)(ip, istate) = States(ielem * Np * num_states + ip * num_states + istate);
+                    }
+                }
+            }
+        }
     }
 
 } // end namespace solver

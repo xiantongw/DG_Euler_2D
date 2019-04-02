@@ -80,6 +80,38 @@ namespace lagrange
         return node_physical;
     }
 
+        ublas::vector<ublas::vector<double> > MapReferenceToPhysical(TriMesh mesh,  int ielem, int p, double (*pBumpFunction)(double))
+    {
+        int Np = int((p + 1) * (p + 2) / 2); // number of basis functions
+        ublas::vector<ublas::vector<double> > node_physical(Np, ublas::vector<double> (2, 1));
+        ublas::vector<ublas::vector<double> > vertex(3, ublas::vector<double> (2, 0.0));
+        std::vector<int> ind_vertex = utils::GetVertexIndex(mesh.E[ielem]);
+        for (int i = 0; i < 3; i++)
+        {
+            vertex[i][0] = mesh.V[mesh.E[ielem][ind_vertex[i]] - 1][0];
+            vertex[i][1] = mesh.V[mesh.E[ielem][ind_vertex[i]] - 1][1];
+        }
+        node_physical = MapReferenceToPhysicalLinear(vertex, p); // First get the cordinates as the linear element
+        // Now loop through B2E, find out what is the local index of the curved edge
+        if (p > 1)
+        {
+            for (int iedge = 0; iedge < mesh.B2E.size(); iedge++)
+            {
+                if ((mesh.B2E[iedge][0] == ielem + 1) && (mesh.B2E[iedge][2] == mesh.curved_group)) // this element is on the curved boudary and the local index is got
+                {
+                    int iloc = mesh.B2E[iedge][1] - 1;
+                    ublas::vector<int> selected_lagrange_index = geometry::GetEdgeLagrangeNodeIndex(p, iloc);
+                    for (int iedge_node = 0; iedge_node < selected_lagrange_index.size(); iedge_node++)
+                    {
+                        int inode = selected_lagrange_index[iedge_node];
+                        node_physical[inode][1] = pBumpFunction(node_physical[inode][0]);
+                    }
+                }
+            }
+        }
+        return node_physical;
+    }
+
     ublas::vector<double> MapPhysicalToReferenceLinear(ublas::vector<ublas::vector<double> > vertex,
                                                         ublas::vector<double> point, int p)
     {

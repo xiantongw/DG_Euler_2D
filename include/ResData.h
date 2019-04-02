@@ -21,6 +21,7 @@ typedef struct ResData{
 	ublas::vector<double> x_quad_2d;
 	ublas::vector<double> w_quad_2d;
 	arr_2d Phi;
+	arr_2d Phi_Curved;
 	arr_3d GPhi;
 	arr_3d GPhi_Curved;
 	arr_3d Phi_1D;

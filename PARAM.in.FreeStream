@@ -12,4 +12,5 @@ bound3        Free_Stream
 mesh_file     ./mesh/bump0.gri
 order         0
 eps           1e-20
-MAXITER       1000
+MAXITER       1
+dnOutput      1

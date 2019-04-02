@@ -35,4 +35,6 @@
 .DS_Store
 *.gri
 .vscode/*
-
+*.dat
+run/*
+*.log

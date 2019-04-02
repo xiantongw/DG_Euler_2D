@@ -35,6 +35,8 @@ namespace solver {
 
 	ublas::vector<double> TimeMarching_TVDRK3(TriMesh mesh, Param& param, ResData& resdata, ublas::vector<double> States_old, ublas::vector<ublas::matrix<double> > invM, int p, int& converged, double& norm_residual);
 
+	void PostProc(TriMesh mesh, ublas::vector<double> States, int p, ublas::vector<ublas::matrix<double> >& Nodes, ublas::vector<ublas::matrix<double> >& States_on_Nodes);
+
 }
 
 #endif

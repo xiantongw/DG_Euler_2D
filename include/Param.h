@@ -10,6 +10,7 @@ typedef struct Param{
     double T_inf;
     double R;
     double eps;
+    int dnOutput;
     int MAXITER;
     std::string bound0;
     std::string bound1;

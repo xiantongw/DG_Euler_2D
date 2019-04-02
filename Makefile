@@ -58,6 +58,10 @@ ${BUILD_DIR}/main.o: ${SRC_DIR}/main.cpp | ${BUILD_DIR}
 ${BUILD_DIR}:
 	mkdir -p build
 
+rundir:
+	mkdir -p run
+	cd run; ln -s ../solver.exe .; cp ../PARAM* .
+
 clean:
 	rm -rf solver*.exe
 	rm -rf ${BUILD_DIR}*
