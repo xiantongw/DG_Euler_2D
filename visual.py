@@ -53,10 +53,11 @@ def readdata():
 
 nodes, states, NE, p= readdata()
 
-plt.figure(figsize=(10, 3))
+istate = 2
+plt.figure(figsize=(20, 6))
 for i in range(NE):
     x = np.asarray(nodes[i, :, 0]); y = np.asarray(nodes[i, :, 1]);
-    z = np.asarray(states[i, :, 0])
+    z = np.asarray(states[i, :, istate])
     if p == 2:
         triangles = [[0, 1, 3], [1, 4, 3], [1, 2, 4], [3, 4, 5]]
         tri_elem = [[0, 2, 5]]
@@ -66,5 +67,9 @@ for i in range(NE):
     triang = mtri.Triangulation(x, y, triangles)
     triang_elem = mtri.Triangulation(x, y, tri_elem)
     
-    plt.tricontourf(triang, z, 20, vmin=np.min(states[:, :, 0]), vmax=np.max(states[:, :, 0]))
-    plt.triplot(triang_elem, 'k-', linewidth=0.2)
+    plt.tricontourf(triang, z, 40, vmin=np.min(states[:, :, istate]), vmax=np.max(states[:, :, istate]))
+    plt.triplot(triang_elem, 'k-', linewidth=0.1)
+
+plt.figure()
+res = np.loadtxt("residual.log")
+plt.semilogy(res[:, 0], res[:, 1])

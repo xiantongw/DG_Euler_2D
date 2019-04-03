@@ -33,10 +33,11 @@ int main(int argc, char *argv[])
     TriMesh mesh(param.mesh_file);
     // Testing Calculate Residaul
     int p = param.order;
+    int q = param.order_geo;
     int Np = int((p + 1) * (p + 2) / 2);
     TriMesh curved_mesh = mesh;
     string boundary_name="bottom";
-    ConstructCurveMesh(mesh, curved_mesh, geometry::BumpFunction, boundary_name, p + 1);
+    ConstructCurveMesh(mesh, curved_mesh, geometry::BumpFunction, boundary_name, q);
 
     ublas::vector<double> States (curved_mesh.num_element * Np * 4, 0.0);
     // Construct free stream state
@@ -51,8 +52,11 @@ int main(int argc, char *argv[])
             States(ielem * Np * 4 + ip * 4 + 3) = u_free(3);
         }
     }
+
     ResData resdata = solver::CalcResData(curved_mesh, p);
     ublas::vector<double> dt(curved_mesh.E.size());
+    // ublas::vector<double> Residual = solver::CalcResidual(curved_mesh, param, resdata, States, dt, p);
+    // cout << setprecision(20) << ublas::norm_2(Residual) << endl;
     ublas::vector<ublas::matrix<double> > M = lagrange::ConstructMassMatrix(p, curved_mesh, resdata);
     ublas::vector<ublas::matrix<double> > invM = lagrange::CalcInvMassMatrix(M);
     int MAXITER = param.MAXITER;

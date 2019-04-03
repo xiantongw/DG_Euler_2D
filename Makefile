@@ -60,7 +60,7 @@ ${BUILD_DIR}:
 
 rundir:
 	mkdir -p run
-	cd run; ln -s ../solver.exe .; cp ../PARAM* .
+	cd run; ln -s ../solver.exe .; cp ../PARAM* .; cp -r ../mesh .
 
 clean:
 	rm -rf solver*.exe

@@ -18,6 +18,7 @@ typedef struct Param{
     std::string bound3;
     std::string mesh_file;
     int order;
+    int order_geo;
 } Param;
 
 #endif

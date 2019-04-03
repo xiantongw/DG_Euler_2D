@@ -64,6 +64,9 @@ Param ReadParamIn(string param_fname)
 		}else if (strcasecmp(param_name.c_str(), "dnOutput") == 0)
 		{
 			param.dnOutput = int(atof(param_value.c_str()));
+		}else if (strcasecmp(param_name.c_str(), "order_geo") == 0)
+		{
+			param.order_geo = int(atof(param_value.c_str()));
 		}
 	}
 	param_file.close();

@@ -4,7 +4,7 @@ namespace ublas = boost::numeric::ublas;
 
 namespace solver{
 
-    ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata, ublas::vector<double> States, ublas::vector<double>& dtA, int p)
+    ublas::vector<double> CalcResidual(TriMesh mesh, Param& param, ResData& resdata, ublas::vector<double> States, ublas::vector<double>& dt, int p)
     {
         // Unroll the mesh information
         int num_element = mesh.num_element;
@@ -150,6 +150,7 @@ namespace solver{
         // Loop through interior edges, calculate the edge flux
         for (int iedge = 0; iedge < mesh.I2E.size(); iedge++)
         {
+            double mws_recorded = 0.0;
             int ielemL = mesh.I2E[iedge][0] - 1; int ielemR = mesh.I2E[iedge][2] - 1;
             int ilocL = mesh.I2E[iedge][1] - 1; int ilocR = mesh.I2E[iedge][3] - 1;
             ublas::vector<ublas::vector<double> > uL(Np, ublas::vector<double> (num_states, 0.0));
@@ -186,6 +187,8 @@ namespace solver{
                         uR_quad += Phi_1D[ilocR][n_quad_1d - 1 - ig][ipi] * uR(ipi);
                     }
                     ublas::vector<double> numerical_flux = euler::CalcNumericalFlux(uL_quad, uR_quad, norm_vec, gamma, "roe", mws);
+                    if (mws_recorded < mws)
+                        mws_recorded = mws;
                     temp_sum_L += Phi_1D[ilocL][ig][ip] * numerical_flux * jacobian_edge * w_quad_1d(ig);
                     temp_sum_R -= Phi_1D[ilocR][n_quad_1d - 1 - ig][ip] * numerical_flux * jacobian_edge * w_quad_1d(ig);
                 }
@@ -196,11 +199,11 @@ namespace solver{
                     Residual(ielemR * Np * num_states + ip * num_states + istate) += temp_sum_R(istate);
                 }
             }
-            mws_tally(ielemL) += mws * jacobian_edge;
-            mws_tally(ielemR) += mws * jacobian_edge;
+            mws_tally(ielemL) += mws_recorded * jacobian_edge;
+            mws_tally(ielemR) += mws_recorded * jacobian_edge;
         }
 
-        // Loop through the boundary edges
+        // Loop through the boundary curved edges
         for (int iedge_curved = 0; iedge_curved < mesh.CurvedEdgeIndex.size(); iedge_curved++)
         {
             int iedge = mesh.CurvedEdgeIndex[iedge_curved];
@@ -208,8 +211,8 @@ namespace solver{
             int ilocL = mesh.B2E[iedge][1] - 1;
             ublas::vector<ublas::vector<double> > uL(Np, ublas::vector<double> (num_states, 0.0));
             string boundary_type;
-            double mws = 0.0;
-            double jacobian_edge;
+            double mws = 0.0, mws_recorded = 0.0;
+            double jacobian_edge, jacobian_edge_recorded = 0.0;
             // Get the boundary type
             switch (mesh.B2E[iedge][2])
             {
@@ -287,8 +290,12 @@ namespace solver{
                     }
                     // Apply the boudary condition
                     jacobian_edge = ublas::norm_2(norm_on_quad_curved(ig));
+                    if (jacobian_edge > jacobian_edge_recorded)
+                        jacobian_edge_recorded = jacobian_edge;
                     ublas::vector<double> norm_vec = norm_on_quad_curved(ig) / jacobian_edge;
                     ublas::vector<double> numerical_flux = euler::ApplyBoundaryCondition(uL_quad, norm_vec, boundary_type, param, mws);
+                    if (mws_recorded < mws)
+                        mws_recorded = mws;
                     temp_sum_L += Phi_1D[ilocL][ig][ip] * numerical_flux * jacobian_edge * w_quad_1d(ig);
                 }
                 for (int istate = 0; istate < num_states; istate++)
@@ -297,7 +304,7 @@ namespace solver{
                     Residual(ielemL * Np * num_states + ip * num_states + istate) += temp_sum_L(istate);
                 }
             }
-            mws_tally(ielemL) += mws * jacobian_edge;
+            mws_tally(ielemL) += mws_recorded * jacobian_edge_recorded;
         }
 
         for (int iedge_linear = 0; iedge_linear < mesh.LinearEdgeIndex.size(); iedge_linear++)
@@ -307,7 +314,7 @@ namespace solver{
             int ilocL = mesh.B2E[iedge][1] - 1;
             ublas::vector<ublas::vector<double> > uL(Np, ublas::vector<double> (num_states, 0.0));
             string boundary_type;
-            double mws = 0.0;
+            double mws = 0.0, mws_recorded = 0.0;
             // Get the boundary type
             switch (mesh.B2E[iedge][2])
             {
@@ -352,6 +359,8 @@ namespace solver{
                     }
                     // Apply the boudary condition
                     ublas::vector<double> numerical_flux = euler::ApplyBoundaryCondition(uL_quad, norm_vec, boundary_type, param, mws);
+                    if (mws_recorded < mws)
+                        mws_recorded = mws;
                     temp_sum_L += Phi_1D[ilocL][ig][ip] * numerical_flux * jacobian_edge * w_quad_1d(ig);
                 }
                 for (int istate = 0; istate < num_states; istate++)
@@ -360,12 +369,12 @@ namespace solver{
                     Residual(ielemL * Np * num_states + ip * num_states + istate) += temp_sum_L(istate);
                 }
             }
-            mws_tally(ielemL) += mws * jacobian_edge;
+            mws_tally(ielemL) += mws_recorded * jacobian_edge;
         }
         // Calculate dtA
         for (int i = 0; i < num_element; i++)
         {
-            dtA(i) = 2.0 * mesh.Area[i] * param.cfl / mws_tally(i);
+            dt(i) = 2.0 * mesh.Area[i] * param.cfl / mws_tally(i);
         }
         return Residual;
     }
@@ -528,7 +537,7 @@ namespace solver{
         converged = 0;
         ublas::vector<double> dt (num_elements, 0.0), dt_temp (num_elements, 0.0);
         ublas::vector<double> Residual = CalcResidual(mesh, param, resdata, States_old, dt, p); // Caculate the residual, and the time step
-        // Caculate the FE state in RK2, the first step
+        // Caculate the 1st state in TVDRK3, the first step
         for (int ielem = 0; ielem < num_elements; ielem++)
         {
             // Get the states in this element
@@ -545,7 +554,7 @@ namespace solver{
             }
             ublas::matrix<double> invM_mul_R(Np, num_states, 0.0);
             ublas::axpy_prod(invM(ielem), R, invM_mul_R, false);
-            u_1 = u - dt(ielem) * invM_mul_R / 3;
+            u_1 = u - dt(ielem) * invM_mul_R;
             // Apply the values of u_FE to the long vector State_FE
             for (int ip = 0; ip < Np; ip++)
             {
@@ -620,7 +629,7 @@ namespace solver{
             }
         }
         ublas::vector<double> Residual_new  = CalcResidual(mesh, param, resdata, States_new, dt_temp, p);
-        norm_residual = ublas::norm_2(Residual_new);
+        norm_residual = ublas::norm_inf(Residual_new);
         if (norm_residual < eps)
             converged = 1;
         return  States_new;

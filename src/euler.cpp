@@ -241,3 +241,27 @@ namespace euler{
         return state;
     }
 } // end namespace euler
+
+// #include "../include/Collective.h"
+// #include <string>
+
+// int main(int argc, char *argv[])
+// {
+//     // Set up the param struct
+//     Param param;
+//     param.gamma = 1.40;
+//     param.p_inf = 1.0;
+//     param.attack_angle = 0.0;
+//     param.mach_inf = 0.5;
+
+//     ublas::vector<double> u_in = euler::CalcFreeStreamState_2DEuler(param);
+//     ublas::vector<double> norm(2, 0.0);
+//     norm(0) = 1.0; norm(1) = 0.0;
+//     double mws = 0.0;
+//     std::string boundary_type = "Subsonic_Outflow";
+//     ublas::vector<double> flux_boundary = euler::ApplyBoundaryCondition(u_in, norm, boundary_type, param, mws);
+//     std::cout << u_in << std::endl;
+//     std::cout << mws << std::endl;
+//     std::cout << flux_boundary << std::endl;
+//     return 0;
+// }

@@ -1,6 +1,6 @@
 gamma         1.40
 attack_angle  0.0
-cfl           0.4
+cfl           0.5
 mach_inf      0.5
 p_inf         1.0
 T_inf         1.0
@@ -11,6 +11,7 @@ bound2        Inviscid_Wall
 bound3        Inflow
 mesh_file     ./mesh/bump0.gri
 order         2
-eps           1e-6
-MAXITER       100000
+order_geo     3
+eps           1e-7
+MAXITER       10000
 dnOutput      1
