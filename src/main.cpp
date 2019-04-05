@@ -39,6 +39,7 @@ int main(int argc, char *argv[])
     string boundary_name="bottom";
     ConstructCurveMesh(mesh, curved_mesh, geometry::BumpFunction, boundary_name, q);
 
+
     ublas::vector<double> States (curved_mesh.num_element * Np * 4, 0.0);
     // Construct free stream state
     ublas::vector<double> u_free = euler::CalcFreeStreamState_2DEuler(param);
@@ -53,7 +54,16 @@ int main(int argc, char *argv[])
         }
     }
 
-    ResData resdata = solver::CalcResData(curved_mesh, p);
+    ResData resdata, resdata_postproc;
+    solver::CalcResData(curved_mesh, p, resdata);
+    if (p == 0)
+    {
+        solver::CalcResData(curved_mesh, 1, resdata_postproc);
+    }else
+    {
+        solver::CalcResData(curved_mesh, p, resdata_postproc);
+    }
+
     ublas::vector<double> dt(curved_mesh.E.size());
     // ublas::vector<double> Residual = solver::CalcResidual(curved_mesh, param, resdata, States, dt, p);
     // cout << setprecision(20) << ublas::norm_2(Residual) << endl;
@@ -100,13 +110,15 @@ int main(int argc, char *argv[])
     {
         for (int ip = 0; ip < Np_solution; ip++)
         {
-            file_nodes  << Nodes(ielem)(ip, 0) << "\t" << Nodes(ielem)(ip, 1) << std::endl;
-            file_states << State_on_Nodes(ielem)(ip, 0) << "\t" << State_on_Nodes(ielem)(ip, 1) << "\t" << State_on_Nodes(ielem)(ip, 2) << "\t" << State_on_Nodes(ielem)(ip, 3) << std::endl;
+            file_nodes  << Nodes(ielem)(ip, 0) << ' ' << Nodes(ielem)(ip, 1) << std::endl;
+            file_states << State_on_Nodes(ielem)(ip, 0) << ' ' << State_on_Nodes(ielem)(ip, 1) << ' ' <<
+                            State_on_Nodes(ielem)(ip, 2) << ' ' << State_on_Nodes(ielem)(ip, 3) << std::endl;
         }
     }
-    file_info << curved_mesh.E.size() << "\t" << p << std::endl;
+    file_info << curved_mesh.E.size() << ' ' << p << std::endl;
     file_nodes.close();
     file_states.close();
     file_info.close();
+
     return 0;
 }

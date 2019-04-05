@@ -9,9 +9,9 @@ bound0        Free_Stream
 bound1        Free_Stream
 bound2        Free_Stream
 bound3        Free_Stream
-mesh_file     ./mesh/bump0.gri
-order         1
-order_geo     3
+mesh_file     ./mesh/bump1.gri
+order         0
+order_geo     1
 eps           1e-20
-MAXITER       1
+MAXITER       5
 dnOutput      1

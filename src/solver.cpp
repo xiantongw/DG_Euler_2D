@@ -211,24 +211,10 @@ namespace solver{
             int ilocL = mesh.B2E[iedge][1] - 1;
             ublas::vector<ublas::vector<double> > uL(Np, ublas::vector<double> (num_states, 0.0));
             string boundary_type;
+            boundary_type = param.bound0;
             double mws = 0.0, mws_recorded = 0.0;
             double jacobian_edge, jacobian_edge_recorded = 0.0;
             // Get the boundary type
-            switch (mesh.B2E[iedge][2])
-            {
-                case 1:
-                boundary_type = param.bound0;
-                    break;
-                case 2:
-                boundary_type = param.bound1;
-                    break;
-                case 3:
-                boundary_type = param.bound2;
-                    break;
-                case 4:
-                boundary_type = param.bound3;
-                    break;
-            }
             for (int ip = 0; ip < Np; ip++)
             {
                 ublas::vector<double> stateL(num_states);
@@ -380,10 +366,8 @@ namespace solver{
     }
 
 
-    ResData CalcResData(TriMesh mesh, int p)
+    void CalcResData(TriMesh mesh, int p, ResData& resdata)
     {
-        ResData resdata;
-
         int Np = int((p + 1) * (p + 2) / 2);
         int Nq = mesh.E[mesh.CurvedElementIndex[0]].size();
         int q = int((sqrt(1 + 8.0 * Nq) - 3) / 2);
@@ -509,6 +493,7 @@ namespace solver{
                 inv_jacobian_linear(ielem) = inv_jacobian;
             }
         }
+
         resdata.jacobian_in_curved_elements = jacobian_curved;
         resdata.jacobian_in_linear_elements = jacobian_linear;
         resdata.invjacobian_in_curved_elements = inv_jacobian_curved;
@@ -521,7 +506,7 @@ namespace solver{
         resdata.Phi_1D_Curved = Phi_1D_Curved;
         resdata.GPhi_1D = GPhi_1D;
         resdata.GPhi_1D_Curved = GPhi_1D_Curved;
-        return resdata;
+
     }
 
         ublas::vector<double> TimeMarching_TVDRK3(TriMesh mesh, Param& param, ResData& resdata, ublas::vector<double> States_old, ublas::vector<ublas::matrix<double> > invM, int p, int& converged, double& norm_residual)
@@ -679,6 +664,149 @@ namespace solver{
                 }
             }
         }
+    }
+
+    void CalcScalarOutputs(TriMesh mesh, ResData resdata, ublas::vector<ublas::matrix<double> >& States_on_Nodes, ublas::vector<ublas::matrix<double> >& Nodes,
+                            Param param, double& err_entropy, double& coeff_lift, double& coeff_drag, std::vector<std::vector<double> >& p_coeff_dist)
+    {
+        // The constants
+        double p_inf = param.p_inf;
+        double m_inf = param.mach_inf;
+        double R = param.R;
+        double gamma = param.gamma;
+        double h = param.h;
+        // Calculate the derived quantities from the free-stream state
+        double T_t = 1.0 + 0.5 * (gamma - 1.0) * m_inf * m_inf;
+        double p_t = pow(T_t, gamma / (gamma - 1.0));
+        double rho_t = p_t / (R * T_t);
+        double s_t = p_t / pow(rho_t, gamma);
+        // Caculate pressure and stagnation entropy on nodes
+        int num_element = mesh.E.size();
+        int Np = States_on_Nodes(0).size1();
+        int p = int((sqrt(1 + 8.0 * Np) - 3) / 2);
+        ublas::vector<ublas::matrix<double> > p_on_nodes(num_element, ublas::matrix<double>(Np, 1, 0.0));
+        ublas::vector<ublas::matrix<double> > rel_s2_on_nodes(num_element, ublas::matrix<double>(Np, 1, 0.0));
+        for (int ielem = 0; ielem < num_element; ielem++)
+        {
+            for (int ip = 0; ip < Np; ip++)
+            {
+                double rho = States_on_Nodes(ielem)(ip, 0);
+                double rhou = States_on_Nodes(ielem)(ip, 1);
+                double rhov = States_on_Nodes(ielem)(ip, 2);
+                double rhoE = States_on_Nodes(ielem)(ip, 3);
+                p_on_nodes(ielem)(ip, 0) = (gamma - 1.0) * (rhoE - 0.5 * (rhou * rhou + rhov * rhov) / rho);
+                double s = p_on_nodes(ielem)(ip, 0) / pow(rho, gamma);
+                rel_s2_on_nodes(ielem)(ip, 0) = (s / s_t - 1) * (s / s_t - 1);
+            }
+        }
+        double total_area = 0.0;
+        err_entropy = 0.0;
+        // Calculate the entropy error
+        // linear elements
+        for (int i_linear_elem = 0; i_linear_elem < mesh.LinearElementIndex.size(); i_linear_elem++)
+        {
+            int ielem = mesh.LinearElementIndex[i_linear_elem];
+            ublas::matrix<double> jacobian = resdata.jacobian_in_linear_elements(ielem);
+            double det_jacobian = jacobian(0, 0) * jacobian(1, 1) - jacobian(0, 1) * jacobian(1, 0);
+            total_area += det_jacobian;
+            for (int ig = 0; ig < resdata.n_quad_2d; ig++) // integrate on quadrature points
+            {
+                for (int ip = 0; ip < Np; ip++)
+                {
+                    err_entropy += resdata.Phi[ig][ip] * rel_s2_on_nodes(ielem)(ip, 0) * resdata.w_quad_2d(ig) * det_jacobian;
+                }
+            }
+        }
+        // curved elements
+        for (int i_curved_elem = 0; i_curved_elem < mesh.CurvedElementIndex.size(); i_curved_elem++)
+        {
+            int ielem = mesh.CurvedElementIndex[i_curved_elem];
+            for (int ig = 0; ig < resdata.n_quad_2d; ig++)
+            {
+                ublas::matrix<double> jacobian = resdata.jacobian_in_curved_elements(ielem, ig);
+                double det_jacobian = jacobian(0, 0) * jacobian(1, 1) - jacobian(0, 1) * jacobian(1, 0);
+                total_area += resdata.w_quad_2d(ig) * det_jacobian;
+                for (int ip = 0; ip < Np; ip++)
+                {
+                    err_entropy += resdata.Phi[ig][ip] * rel_s2_on_nodes(ielem)(ip, 0) * resdata.w_quad_2d(ig) * det_jacobian;
+                }
+            }
+        }
+        err_entropy = sqrt(err_entropy / total_area); // Entropy error calculated
+        // Caculate drag and lift coefficients
+        // Loop through the boundary curved edges
+
+        coeff_lift = 0.0, coeff_drag = 0.0;
+        for (int iedge_curved = 0; iedge_curved < mesh.CurvedEdgeIndex.size(); iedge_curved++)
+        {
+            int iedge = mesh.CurvedEdgeIndex[iedge_curved];
+            int ielemL = mesh.B2E[iedge][0] - 1;
+            int ilocL = mesh.B2E[iedge][1] - 1;
+            // Get the geometry points on the edge
+            ublas::vector<ublas::vector<double> > edge_coord = geometry::GetEdgeCoordinates(mesh, iedge);
+            ublas::vector<int> edge_coord_ind = geometry::GetEdgeCoordinatesIndex(mesh, iedge);
+            ublas::vector<ublas::vector<double> > norm_on_quad_curved(resdata.n_quad_1d, ublas::vector<double> (2));
+            double Nq = resdata.Nq;
+            int q = int((sqrt(1 + 8.0 * Nq) - 3) / 2);
+            ublas::vector<double> quad_x_total(resdata.n_quad_1d, 0.0);
+            for (int ig = 0; ig < resdata.n_quad_1d; ig++)
+            {
+                ublas::vector<double> tangent(2, 0.0);
+                double quad_x = 0.0;
+                for (int iq = 0; iq < q + 1; iq++)
+                {
+                    int local_lagrange_ind = edge_coord_ind(iq);
+                    double deriv_along_edge = 0.0;
+                    switch (ilocL)
+                    {
+                        case 0:
+                            tangent(0) += - edge_coord(iq)(0) * resdata.GPhi_1D_Curved[ilocL][ig][local_lagrange_ind][0]
+                                        + edge_coord(iq)(0) * resdata.GPhi_1D_Curved[ilocL][ig][local_lagrange_ind][1];
+                            tangent(1) += - edge_coord(iq)(1) * resdata.GPhi_1D_Curved[ilocL][ig][local_lagrange_ind][0]
+                                        + edge_coord(iq)(1) * resdata.GPhi_1D_Curved[ilocL][ig][local_lagrange_ind][1];
+                            quad_x += - edge_coord(iq)(0) * resdata.Phi_1D_Curved[ilocL][ig][local_lagrange_ind];
+                            break;
+                        case 1:
+                            deriv_along_edge = - resdata.GPhi_1D_Curved[ilocL][ig][local_lagrange_ind][1];
+                            tangent(0) += edge_coord(iq)(0) * deriv_along_edge;
+                            tangent(1) += edge_coord(iq)(1) * deriv_along_edge;
+                            quad_x += - edge_coord(iq)(0) * resdata.Phi_1D_Curved[ilocL][ig][local_lagrange_ind];
+                            break;
+                        case 2:
+                            deriv_along_edge = resdata.GPhi_1D_Curved[ilocL][ig][local_lagrange_ind][0];
+                            tangent(0) += edge_coord(iq)(0) * deriv_along_edge;
+                            tangent(1) += edge_coord(iq)(1) * deriv_along_edge;
+                            quad_x += - edge_coord(iq)(0) * resdata.Phi_1D_Curved[ilocL][ig][local_lagrange_ind];
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                norm_on_quad_curved(ig)(0) = tangent(1);
+                norm_on_quad_curved(ig)(1) = -1.0 * tangent(0);
+                quad_x_total(ig) = quad_x;
+            }
+
+            // Now do the integration using 1d quad points
+            for (int ig = 0; ig < resdata.n_quad_1d; ig++)
+            {
+                // interpolate the pressure to quadrature nodes
+                double p_quad = 0.0;
+                for (int ipi = 0; ipi < Np; ipi++)
+                {
+                    p_quad += resdata.Phi_1D[ilocL][ig][ipi] * p_on_nodes(ielemL)(ipi, 0);
+                }
+                double jacobian_edge = ublas::norm_2(norm_on_quad_curved(ig));
+                ublas::vector<double> norm_vec = norm_on_quad_curved(ig) / jacobian_edge;
+                coeff_lift += (p_quad - p_inf) * norm_vec(1) * jacobian_edge * resdata.w_quad_1d(ig);
+                coeff_drag += (p_quad - p_inf) * norm_vec(0) * jacobian_edge * resdata.w_quad_1d(ig);
+                double p_coeff = (p_quad - p_inf) / (0.5 * gamma * p_inf * m_inf * m_inf);
+                std::vector<double> p_coeff_on_node = {quad_x_total(ig), p_coeff};
+                p_coeff_dist.push_back(p_coeff_on_node);
+            }
+        }
+        coeff_lift = coeff_lift / (0.5 * gamma * p_inf * m_inf * m_inf * h);
+        coeff_drag = coeff_drag / (0.5 * gamma * p_inf * m_inf * m_inf * h);
     }
 
 } // end namespace solver

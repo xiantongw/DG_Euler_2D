@@ -38,3 +38,5 @@
 *.dat
 run/*
 *.log
+*.eps
+bump*

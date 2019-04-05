@@ -8,38 +8,13 @@ Created on Mon Apr  1 23:46:34 2019
 
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
+import matplotlib as mpl
 import numpy as np
 
-## Create triangulation.
-#x = np.asarray([0, 1, 2, 3, 0.5, 1.5, 2.5, 1, 2, 1.5])
-#y = np.asarray([0, 0, 0, 0, 1.0, 1.0, 1.0, 2, 2, 3.0])
-#triangles = [[0, 1, 4], [1, 2, 5], [2, 3, 6], [1, 5, 4], [2, 6, 5], [4, 5, 7],
-#             [5, 6, 8], [5, 8, 7], [7, 8, 9]]
-#triang = mtri.Triangulation(x, y, triangles)
-#
-## Interpolate to regularly-spaced quad grid.
-#z = np.cos(1.5 * x) * np.cos(1.5 * y)
-#
-## Set up the figure
-#fig, axs = plt.subplots(nrows=1, ncols=1)
-#
-## Plot the triangulation.
-#axs.tricontourf(triang, z, 20)
-#axs.triplot(triang, 'ko-')
-#axs.set_title('Triangular grid')
-#
-#fig.tight_layout()
-#plt.show()
-
-
-#def read_data():
-#    nodes_raw = np.load("nodes.dat")
-#    states_raw = np.load("states.dat")
-
-def readdata():
-    nodes_raw = np.loadtxt("nodes.dat")
-    states_raw = np.loadtxt("states.dat")
-    info = np.loadtxt("info.dat"); NE = int(info[0]); p = int(info[1])
+def readdata(path):
+    nodes_raw = np.loadtxt(path+"/nodes.dat")
+    states_raw = np.loadtxt(path+"/states.dat")
+    info = np.loadtxt(path+"/info.dat"); NE = int(info[0]); p = int(info[1])
     if p == 0:
         Np = 3
     else:
@@ -51,13 +26,16 @@ def readdata():
         states[i, :, :] = states_raw[(i * Np) : (i * Np + Np), :]
     return nodes, states, NE, p
 
-nodes, states, NE, p= readdata()
+nodes, states, NE, p= readdata("bump2_p2")
 
-istate = 2
-plt.figure(figsize=(20, 6))
+fig = plt.figure(figsize=(12, 3))
+cmap = 'jet'
+M = np.sqrt(states[:, :, 1]**2 + states[:, :, 2]**2) / states[:, :, 0]
+ax1 = fig.add_axes([0.0, 0.0, 0.9, 1.0])
 for i in range(NE):
+    print(i)
     x = np.asarray(nodes[i, :, 0]); y = np.asarray(nodes[i, :, 1]);
-    z = np.asarray(states[i, :, istate])
+    z = np.asarray(M[i, :])
     if p == 2:
         triangles = [[0, 1, 3], [1, 4, 3], [1, 2, 4], [3, 4, 5]]
         tri_elem = [[0, 2, 5]]
@@ -66,10 +44,17 @@ for i in range(NE):
         tri_elem = [[0, 1, 2]]
     triang = mtri.Triangulation(x, y, triangles)
     triang_elem = mtri.Triangulation(x, y, tri_elem)
-    
-    plt.tricontourf(triang, z, 40, vmin=np.min(states[:, :, istate]), vmax=np.max(states[:, :, istate]))
-    plt.triplot(triang_elem, 'k-', linewidth=0.1)
+    ax1.tricontourf(triang, z, 5, vmin=np.min(M), vmax=np.max(M), cmap=cmap)
+    #ax1.triplot(triang_elem, 'k-', linewidth=0.01)
 
-plt.figure()
-res = np.loadtxt("residual.log")
-plt.semilogy(res[:, 0], res[:, 1])
+plt.xlabel("x")
+plt.ylabel("y")
+
+ax2 = fig.add_axes([0.91, 0.0, 0.01, 1.0])
+norm = mpl.colors.Normalize(vmin=np.min(M), vmax=np.max(M))
+cb1 = mpl.colorbar.ColorbarBase(ax2, cmap=cmap,
+                                norm=norm,
+                                orientation='vertical')
+cb1.set_label('Mach Number')
+
+plt.savefig("mach_bump2_p2.eps", bbox_inches='tight')

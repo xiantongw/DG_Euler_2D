@@ -10,8 +10,8 @@ bound1        Subsonic_Outflow
 bound2        Inviscid_Wall
 bound3        Inflow
 mesh_file     ./mesh/bump0.gri
-order         2
+order         1
 order_geo     3
 eps           1e-7
-MAXITER       10000
+MAXITER       10
 dnOutput      1
